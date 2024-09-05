@@ -1,13 +1,14 @@
 # Python Libraries
 import tkinter as tk
 from tkinter import ttk
-import sqlite3
+from tkinter.filedialog import askopenfilename
+
+# Local Libraries
+from DB.PokeDB import PokeDexDB
 
 # Global Declarations
 TITLE: str = "RegionalDexBuilder"
 VERSION: str = "1.0.0"  # TODO move to attributes file of some kind
-IMAGE: str = r"C:\Users\NathanJones\Desktop\Projects\_complete\Recycle Bin - Shortcut\PokeGit\PyPokedex\Pokémon HOME\Pokémon Icons\poke_icon_0001_000_mf_n_00000000_f_n.png"
-PKMN_ID: int = 0
 
 
 def image_to_blob(image_path: str) -> bytes:
@@ -18,90 +19,102 @@ def image_to_blob(image_path: str) -> bytes:
 
 
 class RegionalDexBuilder:
-    def __init__(self, pokedex_db: str):
-        self.pokedex_db: str = pokedex_db
+    def __init__(self):
+        # Database
+        self.db: PokeDexDB = PokeDexDB()
 
-    def get_db_conn(self):
-        return sqlite3.connect(self.pokedex_db)
+        # Selection Variables
+        self.cur_pokemon_id: int = 1
 
-    def create_main_window(self):
+        # Control Variables
+        self.pkmn_tree = None
+        self.icon_normal_lbl = None
+        self.icon_shiny_lbl = None
+
+        self._create_main_window()
+
+    def _create_main_window(self):
         root = tk.Tk()
         root.title(TITLE)
         root.geometry("800x600")
         root.resizable(False, False)
 
-        # Windows OS only (remove the minimize/maximize button)
+        # Remove the minimize/maximize button (Windows only)
         try:
             root.attributes("-toolwindow", True)
         except tk.TclError:
             print("Not supported on your platform")
 
-        columns = ["NationalDexNo", "PokemonName"]
-        self.pkmn_tree = ttk.Treeview(root, columns=columns, show='headings')
+        columns: list = ["PokemonID", "NationalDexNo", "PokemonName"]
+        displaycolumns: list = ["NationalDexNo", "PokemonName"]
+        self.pkmn_tree = ttk.Treeview(root, columns=columns, displaycolumns=displaycolumns, show="headings")
         self.pkmn_tree.column("NationalDexNo", width=30, minwidth=30)
-        self.pkmn_tree.bind("<<TreeviewSelect>>", self._pokemon_selected)
 
         # Define headings
         self.pkmn_tree.heading("NationalDexNo", text="#")
         self.pkmn_tree.heading("PokemonName", text="Pokemon")
 
-        icon = tk.PhotoImage(data=db_get_icon())  # Replace with your icon
-        image_label = tk.Label(root, image=icon)
+        # Control variable declarations
+        self.pkmn_tree.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
+        self.icon_normal_lbl = tk.Label(root, width=112, height=112)
+        self.icon_shiny_lbl = tk.Label(root, width=112, height=112)
 
+        # Bindings
+        self.icon_normal_lbl.bind("<Button-1>", self._on_icon_normal_clicked)
+        self.icon_shiny_lbl.bind("<Button-1>", self._on_icon_shiny_clicked)
+
+        # Pack controls
         self.pkmn_tree.pack(side=tk.LEFT, fill=tk.Y, expand=True)
-        image_label.pack(side=tk.LEFT)
-        for pokemon in self.get_national_dex_pokemon():
+        self.icon_normal_lbl.pack(side=tk.LEFT)
+        self.icon_shiny_lbl.pack(side=tk.LEFT)
+
+        # Populate selection list
+        for pokemon in self.db.get_national_dex_pokemon():
             self.pkmn_tree.insert("", tk.END, values=pokemon)
-        # layout on the root window
+
+        # Start loop
         root.mainloop()
 
-    def get_national_dex_pokemon(self) -> list:
-        conn = self.get_db_conn()
-        cursor = conn.cursor()
-        cursor.execute("select distinct NationalDexID, PokemonName from NationalDex")
-        national_dex_pokemon: list = cursor.fetchall()
-        conn.close()
-        return national_dex_pokemon
-
-    def _pokemon_selected(self, event):
+    # Event Handlers
+    def _on_pokemon_selected(self, event):
         selected_pokemon = self.pkmn_tree.focus()
-        print(self.pkmn_tree.item(selected_pokemon)["values"][0])
+        self.cur_pokemon_id = self.pkmn_tree.item(selected_pokemon)["values"][0]
+
+        icon_normal_data: bytes = self.db.get_icon_normal(self.cur_pokemon_id)
+        if icon_normal_data:
+            self.icon_normal = tk.PhotoImage(data=icon_normal_data)
+            self.icon_normal_lbl.config(image=self.icon_normal, width=112, height=112)
+        else:
+            self.icon_normal = tk.PhotoImage(file="Placeholder.png")
+            self.icon_normal_lbl.config(image=self.icon_normal, width=112, height=112)
+
+        icon_shiny_data: bytes = self.db.get_icon_shiny(self.cur_pokemon_id)
+        if icon_shiny_data:
+            self.icon_shiny = tk.PhotoImage(data=icon_shiny_data)
+            self.icon_shiny_lbl.config(image=self.icon_shiny, width=112, height=112)
+
+        else:
+            self.icon_shiny = tk.PhotoImage(file="Placeholder.png")
+            self.icon_shiny_lbl.config(image=self.icon_shiny, width=112, height=112)
+
+    def _on_icon_normal_clicked(self, event) -> None:
+        filename: str = tk.filedialog.askopenfilename()
+        if filename:
+            image_blob: bytes = image_to_blob(filename)
+            self.db.update_icon_normal(self.cur_pokemon_id, image_blob)
+            self._on_pokemon_selected("event")
 
 
-def _db_update_icon_normal():
-    conn = sqlite3.connect("DB/PokeDexDB.sqlite3")
-    cursor = conn.cursor()
-    image_blob: bytes = image_to_blob(IMAGE)
-    cursor.execute("update NationalDex set IconNormal = ? where PokemonID = ?", (image_blob, PKMN_ID))
-    conn.commit()
-    conn.close()
-
-
-def _db_update_icon_shiny():
-    conn = sqlite3.connect("DB/PokeDexDB.sqlite3")
-    cursor = conn.cursor()
-    image_blob: bytes = image_to_blob(IMAGE)
-    cursor.execute("update NationalDex set IconShiny = ? where PokemonID = ?", (image_blob, PKMN_ID))
-    conn.commit()
-    conn.close()
-
-
-def db_get_icon() -> bytes:
-    conn = sqlite3.connect("DB/PokeDexDB.sqlite3")
-    cursor = conn.cursor()
-    cursor.execute("select IconNormal from NationalDex where PokemonID = ?", (PKMN_ID,))
-    img_data = cursor.fetchone()[0]
-    conn.close()
-    return img_data
+    def _on_icon_shiny_clicked(self, event) -> None:
+        filename: str = tk.filedialog.askopenfilename()
+        if filename:
+            image_blob: bytes = image_to_blob(filename)
+            self.db.update_icon_shiny(self.cur_pokemon_id, image_blob)
+            self._on_pokemon_selected("event")
 
 
 def main():
-    pokedex_db: str = "DB/PokeDexDB.sqlite3"
-    dex_builder = RegionalDexBuilder(pokedex_db)
-    dex_builder.create_main_window()
-    # create_main_window()
-    # _db_update_icon_normal()
-    # _db_update_icon_shiny()
+    dex_builder = RegionalDexBuilder()
 
 
 if __name__ == "__main__":
