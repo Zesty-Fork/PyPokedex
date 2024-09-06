@@ -15,6 +15,7 @@ class PokeDexDB:
                     ,NationalDexID
                     ,PokemonName || '[' || FormName || ']' as PokemonName
                 from NationalDex
+                where IconNormal is null
                 order by NationalDexID, FormID
                 """)
             national_dex_pokemon.extend(cursor.fetchall())
