@@ -1,7 +1,9 @@
 # Python Libraries
+import os
 import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
+import shutil
 
 # Local Libraries
 from DB.PokeDB import PokeDexDB
@@ -104,7 +106,6 @@ class RegionalDexBuilder:
             self.db.update_icon_normal(self.cur_pokemon_id, image_blob)
             self._on_pokemon_selected("event")
 
-
     def _on_icon_shiny_clicked(self, event) -> None:
         filename: str = tk.filedialog.askopenfilename()
         if filename:
@@ -115,6 +116,32 @@ class RegionalDexBuilder:
 
 def main():
     dex_builder = RegionalDexBuilder()
+    import sqlite3
+    for filename in os.listdir("Pokémon HOME/Pokémon Icons"):
+        if filename.endswith(".png"):
+            if filename.split("_")[4] == "mf" and filename.split("_")[5] == "n":
+                national_dex_id: int = int(filename.split("_")[2])
+                form_id: int = int(filename.split("_")[3])
+                image_blob: bytes = image_to_blob(f"Pokémon HOME/Pokémon Icons/{filename}")
+                conn = sqlite3.connect("DB/PokeDB.sqlite3")
+                cursor = conn.cursor()
+                if form_id == 0:
+                    if filename.endswith("n.png"):
+                        cursor.execute("""
+                            update NationalDex
+                            set IconNormal = ?
+                            where NationalDexID = ?
+                                and FormID = 1
+                        """, (image_blob, national_dex_id))
+                    elif filename.endswith("r.png"):
+                        cursor.execute("""
+                            update NationalDex
+                            set IconShiny = ?
+                            where NationalDexID = ?
+                                and FormID = 1
+                        """, (image_blob, national_dex_id))
+                    conn.commit()
+                    shutil.move(f"Pokémon HOME/Pokémon Icons/{filename}", f"Pokémon HOME/Processed/{filename}")
 
 
 if __name__ == "__main__":
