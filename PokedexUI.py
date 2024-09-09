@@ -1,9 +1,9 @@
 # Python Libraries
 import os
+import shutil
 import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
-import shutil
 
 # Local Libraries
 from DB.PokeDB import PokeDexDB
@@ -60,6 +60,8 @@ class RegionalDexBuilder:
         self.pkmn_tree.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
         self.icon_normal_lbl = tk.Label(root, width=112, height=112)
         self.icon_shiny_lbl = tk.Label(root, width=112, height=112)
+        self.split_genders_btn = tk.Button(root, text="Split Gendered Forms", command=self._on_split_genders_clicked)
+        self.add_gigantamax_btn = tk.Button(root, text="Add Gigantamax Form", command=self._on_gigantamax_clicked)
 
         # Bindings
         self.icon_normal_lbl.bind("<Button-1>", self._on_icon_normal_clicked)
@@ -69,13 +71,21 @@ class RegionalDexBuilder:
         self.pkmn_tree.pack(side=tk.LEFT, fill=tk.Y, expand=True)
         self.icon_normal_lbl.pack(side=tk.LEFT)
         self.icon_shiny_lbl.pack(side=tk.LEFT)
+        self.split_genders_btn.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        self.add_gigantamax_btn.pack(side=tk.BOTTOM, fill=tk.BOTH)
 
-        # Populate selection list
-        for pokemon in self.db.get_national_dex_pokemon():
-            self.pkmn_tree.insert("", tk.END, values=pokemon)
+        self._refresh_pokemon_list()
 
         # Start loop
         root.mainloop()
+
+    def _refresh_pokemon_list(self) -> None:
+        # Delete items from tree
+        self.pkmn_tree.delete(*self.pkmn_tree.get_children())
+
+        # Populate Tree
+        for pokemon in self.db.get_national_dex_pokemon():
+            self.pkmn_tree.insert("", tk.END, values=pokemon)
 
     # Event Handlers
     def _on_pokemon_selected(self, event):
@@ -113,35 +123,42 @@ class RegionalDexBuilder:
             self.db.update_icon_shiny(self.cur_pokemon_id, image_blob)
             self._on_pokemon_selected("event")
 
+    def _on_split_genders_clicked(self) -> None:
+        self.db.split_gender_forms(self.cur_pokemon_id)
+        self._refresh_pokemon_list()
+
+    def _on_gigantamax_clicked(self):
+        self.db.add_gigantamax_form(self.cur_pokemon_id)
+        self._refresh_pokemon_list()
 
 def main():
     dex_builder = RegionalDexBuilder()
     import sqlite3
-    for filename in os.listdir("Pokémon HOME/Pokémon Icons"):
-        if filename.endswith(".png"):
-            if filename.split("_")[4] == "mf" and filename.split("_")[5] == "n":
+    for filename in os.listdir("Pokémon HOME/"):
+        if filename.endswith(".pnig"):
+            if filename.split("_")[4] == "uk" and filename.split("_")[5] == "n":
                 national_dex_id: int = int(filename.split("_")[2])
-                form_id: int = int(filename.split("_")[3])
-                image_blob: bytes = image_to_blob(f"Pokémon HOME/Pokémon Icons/{filename}")
+                form_id: int = int(filename.split("_")[3]) + 1
+                image_blob: bytes = image_to_blob(f"Pokémon HOME/{filename}")
                 conn = sqlite3.connect("DB/PokeDB.sqlite3")
                 cursor = conn.cursor()
-                if form_id == 0:
-                    if filename.endswith("n.png"):
-                        cursor.execute("""
-                            update NationalDex
-                            set IconNormal = ?
-                            where NationalDexID = ?
-                                and FormID = 1
-                        """, (image_blob, national_dex_id))
-                    elif filename.endswith("r.png"):
-                        cursor.execute("""
-                            update NationalDex
-                            set IconShiny = ?
-                            where NationalDexID = ?
-                                and FormID = 1
-                        """, (image_blob, national_dex_id))
-                    conn.commit()
-                    shutil.move(f"Pokémon HOME/Pokémon Icons/{filename}", f"Pokémon HOME/Processed/{filename}")
+                if filename.endswith("n.png"):
+                    cursor.execute("""
+                        update NationalDex
+                        set IconNormal = ?
+                        where NationalDexID = ?
+                            and FormID = ?
+                    """, (image_blob, national_dex_id, form_id))
+                elif filename.endswith("r.png"):
+                    cursor.execute("""
+                        update NationalDex
+                        set IconShiny = ?
+                        where NationalDexID = ?
+                            and FormID = ?
+                    """, (image_blob, national_dex_id, form_id))
+                conn.commit()
+                if cursor.rowcount:
+                    shutil.move(f"Pokémon HOME/{filename}", f"Pokémon HOME/Processed/{filename}")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ class PokeDexDB:
             cursor.execute("""
                 select PokemonID
                     ,NationalDexID
-                    ,PokemonName || '[' || FormName || ']' as PokemonName
+                    ,PokemonName || ' [' || FormName || ']' as PokemonName
                 from NationalDex
                 order by NationalDexID, FormID
                 """)
@@ -68,4 +68,73 @@ class PokeDexDB:
                 set IconShiny = ?
                 where PokemonID = ?
                 """, (image_blob, pokemon_id))
+            conn.commit()
+
+    def split_gender_forms(self, pokemon_id: int):
+        with sqlite3.connect(self._database) as conn:
+            cursor = conn.cursor()
+            cursor.execute("update NationalDex set FormName = 'Male' where PokemonID = ?", (pokemon_id,))
+            cursor.execute("""
+                insert into NationalDex (NationalDexID, FormID, PokemonName, FormName)
+                select nd.NationalDexID
+                    ,ndf.MaxFormID + 1 as NextFormID
+                    ,nd.PokemonName
+                    ,'Female' as FormName
+                from NationalDex nd
+                join (
+                    select NationalDexID
+                        ,Max(FormID) as MaxFormID
+                    from NationalDex
+                    group by NationalDexID
+                    ) ndf on ndf.NationalDexID = nd.NationalDexID
+                where nd.PokemonID = ?
+                """, (pokemon_id,))
+            cursor.execute("""
+                insert into PokemonStats (PokemonID, GenerationID, HP, ATK, DEF, SPA, SPD, SPE)
+                select (select Max(PokemonID) from NationalDex)
+                    ,GenerationID
+                    ,HP
+                    ,ATK
+                    ,DEF
+                    ,SPA
+                    ,SPD
+                    ,SPE
+                from PokemonStats
+                where PokemonID = ?
+                """, (pokemon_id,))
+            conn.commit()
+
+
+    def add_gigantamax_form(self, pokemon_id: int):
+        with sqlite3.connect(self._database) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                insert into NationalDex (NationalDexID, FormID, PokemonName, FormName)
+                select nd.NationalDexID
+                    ,ndf.MaxFormID + 1 as NextFormID
+                    ,nd.PokemonName
+                    ,'Gigantamax' as FormName
+                from NationalDex nd
+                join (
+                    select NationalDexID
+                        ,Max(FormID) as MaxFormID
+                    from NationalDex
+                    group by NationalDexID
+                    ) ndf on ndf.NationalDexID = nd.NationalDexID
+                where nd.PokemonID = ?
+                """, (pokemon_id,))
+            cursor.execute("""
+                insert into PokemonStats (PokemonID, GenerationID, HP, ATK, DEF, SPA, SPD, SPE)
+                select (select Max(PokemonID) from NationalDex)
+                    ,GenerationID
+                    ,HP
+                    ,ATK
+                    ,DEF
+                    ,SPA
+                    ,SPD
+                    ,SPE
+                from PokemonStats
+                where PokemonID = ?
+                    and GenerationID = 8
+                """, (pokemon_id,))
             conn.commit()
