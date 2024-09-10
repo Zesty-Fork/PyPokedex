@@ -1,6 +1,4 @@
 # Python Libraries
-import os
-import shutil
 import tkinter as tk
 from tkinter import ttk
 from tkinter.filedialog import askopenfilename
@@ -11,6 +9,7 @@ from DB.PokeDB import PokeDexDB
 # Global Declarations
 TITLE: str = "RegionalDexBuilder"
 VERSION: str = "1.0.0"  # TODO move to attributes file of some kind
+SHINY: bool = True
 
 
 def image_to_blob(image_path: str) -> bytes:
@@ -20,7 +19,7 @@ def image_to_blob(image_path: str) -> bytes:
     return blob
 
 
-class RegionalDexBuilder:
+class PokedexApp:
     def __init__(self):
         # Database
         self.db: PokeDexDB = PokeDexDB()
@@ -30,9 +29,9 @@ class RegionalDexBuilder:
 
         # Control Variables
         self.pkmn_tree = None
-        self.icon_normal_lbl = None
-        self.icon_shiny_lbl = None
+        self.pkmn_icon_lbl = None
 
+        # Start application
         self._create_main_window()
 
     def _create_main_window(self):
@@ -47,6 +46,23 @@ class RegionalDexBuilder:
         except tk.TclError:
             print("Not supported on your platform")
 
+        # Create a style object
+        style = ttk.Style()
+
+        # Configure the style for the progress bar
+        style.configure("TProgressbar", troughcolor='white', background='blue', thickness=30)
+
+        # Stats frame variables
+        self.pkmn_stats_frame = ttk.Frame(root)
+        self.pkmn_hp_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate',
+                                          maximum=800)
+        self.pkmn_atk_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
+        self.pkmn_def_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
+        self.pkmn_spa_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
+        self.pkmn_spd_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
+        self.pkmn_spe_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
+
+        # Tree view control
         columns: list = ["PokemonID", "NationalDexNo", "PokemonName"]
         displaycolumns: list = ["NationalDexNo", "PokemonName"]
         self.pkmn_tree = ttk.Treeview(root, columns=columns, displaycolumns=displaycolumns, show="headings")
@@ -57,108 +73,83 @@ class RegionalDexBuilder:
         self.pkmn_tree.heading("PokemonName", text="Pokemon")
 
         # Control variable declarations
-        self.pkmn_tree.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
-        self.icon_normal_lbl = tk.Label(root, width=112, height=112)
-        self.icon_shiny_lbl = tk.Label(root, width=112, height=112)
-        self.split_genders_btn = tk.Button(root, text="Split Gendered Forms", command=self._on_split_genders_clicked)
-        self.add_gigantamax_btn = tk.Button(root, text="Add Gigantamax Form", command=self._on_gigantamax_clicked)
+        pkmn_games: list = self.db.get_pkmn_games()
+        self.pkmn_game_om = tk.OptionMenu(root, *pkmn_games)
+        self.pkmn_icon_lbl = tk.Label(root)
 
         # Bindings
-        self.icon_normal_lbl.bind("<Button-1>", self._on_icon_normal_clicked)
-        self.icon_shiny_lbl.bind("<Button-1>", self._on_icon_shiny_clicked)
+        self.pkmn_tree.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
 
-        # Pack controls
-        self.pkmn_tree.pack(side=tk.LEFT, fill=tk.Y, expand=True)
-        self.icon_normal_lbl.pack(side=tk.LEFT)
-        self.icon_shiny_lbl.pack(side=tk.LEFT)
-        self.split_genders_btn.pack(side=tk.BOTTOM, fill=tk.BOTH)
-        self.add_gigantamax_btn.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        # Main control placement
+        self.pkmn_game_om.grid(column=0, row=0)
+        self.pkmn_tree.grid(column=0, row=1, rowspan=2)
+        self.pkmn_icon_lbl.grid(column=1, row=0)
 
-        self._refresh_pokemon_list()
+        # Stats frame placement
+        self.pkmn_stats_frame.grid(column=1, row=1)
+        self.pkmn_hp_pb.grid(column=0, row=0)
+        self.pkmn_atk_pb.grid(column=0, row=1)
+        self.pkmn_def_pb.grid(column=0, row=2)
+        self.pkmn_spa_pb.grid(column=0, row=3)
+        self.pkmn_spd_pb.grid(column=0, row=4)
+        self.pkmn_spe_pb.grid(column=0, row=5)
+
+        self._refresh_pkmn_list()
+
+        self.pkmn_tree.focus_set()
+        children: tuple = self.pkmn_tree.get_children()
+        if children:
+            self.pkmn_tree.focus(children[0])
+            self.pkmn_tree.selection_set(children[0])
 
         # Start loop
         root.mainloop()
 
-    def _refresh_pokemon_list(self) -> None:
+    def _refresh_pkmn_list(self) -> None:
         # Delete items from tree
         self.pkmn_tree.delete(*self.pkmn_tree.get_children())
 
         # Populate Tree
-        for pokemon in self.db.get_national_dex_pokemon():
+        for pokemon in self.db.get_pkmn_national_dex():
             self.pkmn_tree.insert("", tk.END, values=pokemon)
 
-    # Event Handlers
-    def _on_pokemon_selected(self, event):
+    def _refresh_pkmn_stats(self) -> None:
+        pkmn_stats: list = self.db.get_pkmn_stats(self.cur_pokemon_id)
+        self.pkmn_hp_pb["value"] = pkmn_stats[0]
+        self.pkmn_atk_pb["value"] = pkmn_stats[1]
+        self.pkmn_def_pb["value"] = pkmn_stats[2]
+        self.pkmn_spa_pb["value"] = pkmn_stats[3]
+        self.pkmn_spd_pb["value"] = pkmn_stats[4]
+        self.pkmn_spe_pb["value"] = pkmn_stats[5]
+
+    def _refresh_pkmn_icon(self) -> None:
+        if SHINY:
+            icon_data: bytes = self.db.get_icon_shiny(self.cur_pokemon_id)
+        else:
+            icon_data: bytes = self.db.get_icon_normal(self.cur_pokemon_id)
+
+        self.pkmn_icon = tk.PhotoImage(data=icon_data)
+        self.pkmn_icon_lbl.config(image=self.pkmn_icon)
+
+    def _update_cur_pkmn_id(self) -> None:
         selected_pokemon = self.pkmn_tree.focus()
         self.cur_pokemon_id = self.pkmn_tree.item(selected_pokemon)["values"][0]
 
-        icon_normal_data: bytes = self.db.get_icon_normal(self.cur_pokemon_id)
-        if icon_normal_data:
-            self.icon_normal = tk.PhotoImage(data=icon_normal_data)
-            self.icon_normal_lbl.config(image=self.icon_normal, width=112, height=112)
-        else:
-            self.icon_normal = tk.PhotoImage(file="Placeholder.png")
-            self.icon_normal_lbl.config(image=self.icon_normal, width=112, height=112)
+        if not self.cur_pokemon_id:
+            self.cur_pokemon_id = 0
 
-        icon_shiny_data: bytes = self.db.get_icon_shiny(self.cur_pokemon_id)
-        if icon_shiny_data:
-            self.icon_shiny = tk.PhotoImage(data=icon_shiny_data)
-            self.icon_shiny_lbl.config(image=self.icon_shiny, width=112, height=112)
+    # Event Handlers
+    def _on_pokemon_selected(self, event):
+        self._update_cur_pkmn_id()
+        self._refresh_pkmn_icon()
+        self._refresh_pkmn_stats()
 
-        else:
-            self.icon_shiny = tk.PhotoImage(file="Placeholder.png")
-            self.icon_shiny_lbl.config(image=self.icon_shiny, width=112, height=112)
+    def _on_form_selected(self, event):
+        pass
 
-    def _on_icon_normal_clicked(self, event) -> None:
-        filename: str = tk.filedialog.askopenfilename()
-        if filename:
-            image_blob: bytes = image_to_blob(filename)
-            self.db.update_icon_normal(self.cur_pokemon_id, image_blob)
-            self._on_pokemon_selected("event")
-
-    def _on_icon_shiny_clicked(self, event) -> None:
-        filename: str = tk.filedialog.askopenfilename()
-        if filename:
-            image_blob: bytes = image_to_blob(filename)
-            self.db.update_icon_shiny(self.cur_pokemon_id, image_blob)
-            self._on_pokemon_selected("event")
-
-    def _on_split_genders_clicked(self) -> None:
-        self.db.split_gender_forms(self.cur_pokemon_id)
-        self._refresh_pokemon_list()
-
-    def _on_gigantamax_clicked(self):
-        self.db.add_gigantamax_form(self.cur_pokemon_id)
-        self._refresh_pokemon_list()
 
 def main():
-    dex_builder = RegionalDexBuilder()
-    import sqlite3
-    for filename in os.listdir("Pokémon HOME/"):
-        if filename.endswith(".pnig"):
-            if filename.split("_")[4] == "uk" and filename.split("_")[5] == "n":
-                national_dex_id: int = int(filename.split("_")[2])
-                form_id: int = int(filename.split("_")[3]) + 1
-                image_blob: bytes = image_to_blob(f"Pokémon HOME/{filename}")
-                conn = sqlite3.connect("DB/PokeDB.sqlite3")
-                cursor = conn.cursor()
-                if filename.endswith("n.png"):
-                    cursor.execute("""
-                        update NationalDex
-                        set IconNormal = ?
-                        where NationalDexID = ?
-                            and FormID = ?
-                    """, (image_blob, national_dex_id, form_id))
-                elif filename.endswith("r.png"):
-                    cursor.execute("""
-                        update NationalDex
-                        set IconShiny = ?
-                        where NationalDexID = ?
-                            and FormID = ?
-                    """, (image_blob, national_dex_id, form_id))
-                conn.commit()
-                if cursor.rowcount:
-                    shutil.move(f"Pokémon HOME/{filename}", f"Pokémon HOME/Processed/{filename}")
+    pokedex = PokedexApp()
 
 
 if __name__ == "__main__":
