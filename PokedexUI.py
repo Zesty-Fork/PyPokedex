@@ -1,7 +1,6 @@
 # Python Libraries
 import tkinter as tk
 from tkinter import ttk
-from tkinter.filedialog import askopenfilename
 
 # Local Libraries
 from DB.PokeDB import PokeDexDB
@@ -10,13 +9,6 @@ from DB.PokeDB import PokeDexDB
 TITLE: str = "RegionalDexBuilder"
 VERSION: str = "1.0.0"  # TODO move to attributes file of some kind
 SHINY: bool = True
-
-
-def image_to_blob(image_path: str) -> bytes:
-    blob: bytes = b""
-    with open(image_path, "rb") as image_file:
-        blob = image_file.read()
-    return blob
 
 
 class PokedexApp:
@@ -30,6 +22,7 @@ class PokedexApp:
         # Control Variables
         self.pkmn_tree = None
         self.pkmn_icon_lbl = None
+        self.pkmn_stats_ctrls: list = []
 
         # Start application
         self._create_main_window()
@@ -46,21 +39,9 @@ class PokedexApp:
         except tk.TclError:
             print("Not supported on your platform")
 
-        # Create a style object
-        style = ttk.Style()
-
-        # Configure the style for the progress bar
-        style.configure("TProgressbar", troughcolor='white', background='blue', thickness=30)
-
         # Stats frame variables
         self.pkmn_stats_frame = ttk.Frame(root)
-        self.pkmn_hp_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate',
-                                          maximum=800)
-        self.pkmn_atk_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
-        self.pkmn_def_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
-        self.pkmn_spa_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
-        self.pkmn_spd_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
-        self.pkmn_spe_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
+        self._set_pkmn_stat_controls()
 
         # Tree view control
         columns: list = ["PokemonID", "NationalDexNo", "PokemonName"]
@@ -87,12 +68,6 @@ class PokedexApp:
 
         # Stats frame placement
         self.pkmn_stats_frame.grid(column=1, row=1)
-        self.pkmn_hp_pb.grid(column=0, row=0)
-        self.pkmn_atk_pb.grid(column=0, row=1)
-        self.pkmn_def_pb.grid(column=0, row=2)
-        self.pkmn_spa_pb.grid(column=0, row=3)
-        self.pkmn_spd_pb.grid(column=0, row=4)
-        self.pkmn_spe_pb.grid(column=0, row=5)
 
         self._refresh_pkmn_list()
 
@@ -105,6 +80,21 @@ class PokedexApp:
         # Start loop
         root.mainloop()
 
+    def _set_pkmn_stat_controls(self) -> None:
+        i: int = 0
+        while i < 6:
+            stat_pb = ttk.Progressbar(self.pkmn_stats_frame, style="TProgressbar", length=200, mode='determinate')
+            stat_pb.grid(column=0, row=i)
+            self.pkmn_stats_ctrls.append(stat_pb)
+            i += 1
+
+    def _refresh_pkmn_stats(self) -> None:
+        pkmn_stats: list = self.db.get_pkmn_stats(self.cur_pokemon_id)
+        i: int = 0
+        while i < 6:
+            self.pkmn_stats_ctrls[i]["value"] = pkmn_stats[i]
+            i += 1
+
     def _refresh_pkmn_list(self) -> None:
         # Delete items from tree
         self.pkmn_tree.delete(*self.pkmn_tree.get_children())
@@ -112,15 +102,6 @@ class PokedexApp:
         # Populate Tree
         for pokemon in self.db.get_pkmn_national_dex():
             self.pkmn_tree.insert("", tk.END, values=pokemon)
-
-    def _refresh_pkmn_stats(self) -> None:
-        pkmn_stats: list = self.db.get_pkmn_stats(self.cur_pokemon_id)
-        self.pkmn_hp_pb["value"] = pkmn_stats[0]
-        self.pkmn_atk_pb["value"] = pkmn_stats[1]
-        self.pkmn_def_pb["value"] = pkmn_stats[2]
-        self.pkmn_spa_pb["value"] = pkmn_stats[3]
-        self.pkmn_spd_pb["value"] = pkmn_stats[4]
-        self.pkmn_spe_pb["value"] = pkmn_stats[5]
 
     def _refresh_pkmn_icon(self) -> None:
         if SHINY:
