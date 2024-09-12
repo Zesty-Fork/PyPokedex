@@ -17,7 +17,7 @@ class PokeDexDB:
                 select PokemonID
                     ,NationalDexID
                     ,PokemonName
-                from NationalDex
+                from Pokemon
                 where FormID = 1
                 order by NationalDexID, FormID
                 """)
@@ -36,9 +36,9 @@ class PokeDexDB:
                 ,SPA
                 ,SPD
                 ,SPE
-            from PokemonStats
-            where PokemonID = ?
-                and GenerationID = 9
+            from StatSet s
+            join PokeDex pd on pd.StatSetID = s.StatSetID
+            where pd.PokemonID = ?
             """, (pkmn_id,))
         result = cursor.fetchone()
         conn.close()
@@ -80,7 +80,7 @@ class PokeDexDB:
         cursor = conn.cursor()
         cursor.execute("""
             select IconShiny
-            from NationalDex
+            from Pokemon
             where PokemonID = ?
             """, (pkmn_id,))
         img_data: bytes = cursor.fetchone()[0]
@@ -91,7 +91,7 @@ class PokeDexDB:
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                update NationalDex
+                update Pokemon
                 set IconNormal = ?
                 where PokemonID = ?
                 """, (image_blob, pkmn_id))
