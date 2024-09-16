@@ -1,3 +1,13 @@
+"""
+SELECT max(ss.HP) as  MaxHP
+	,max(max(ss.ATK, ss.DEF, ss.SPA, ss.SPE)) as  MaxStat
+FROM Pokemon as p
+JOIN PokeDex as pd on pd.PokemonID = p.PokemonID
+JOIN GameDex as gd on gd.GameDexID = pd.GameDexID
+JOIN StatSet as ss on ss.StatSetID = pd.StatSetID
+WHERE gd.GameDexID = 25
+"""
+
 # Handles database operations
 
 # Python Libraries
@@ -50,40 +60,36 @@ class PokeDexDB:
         return pkmn_stats
 
     def get_pkmn_games(self):
+        pkmn_games: dict = {}
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""
-            select GameName
+            select GameID
+                ,GameName
             from Game
             order by GameID
             """)
-        pkmn_games: list = cursor.fetchall()
+        for game_id, game_name in cursor.fetchall():
+            pkmn_games[game_name] = game_id
         conn.close()
         return pkmn_games
 
-    # Get byte data for a Pokémon's normal appearance
-    def get_icon_normal(self, pkmn_id: int) -> bytes:
+    # Get byte data for a Pokémon's appearance
+    def get_pkmn_icon(self, pkmn_id: int, shiny: bool) -> bytes:
+        icon: str = ""
+        if shiny:
+            icon += "IconShiny"
+        else:
+            icon += "IconNormal"
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
-        cursor.execute("""
-            select IconNormal
-            from NationalDex
-            where PokemonID = ?
-            """, (pkmn_id,))
-        img_data: bytes = cursor.fetchone()[0]
-        conn.close()
-        return img_data
-
-    # Get byte data for a Pokémon's shiny appearance
-    def get_icon_shiny(self, pkmn_id: int) -> bytes:
-        conn = sqlite3.connect(self._database)
-        cursor = conn.cursor()
-        cursor.execute("""
-            select IconShiny
+        cursor.execute(f"""
+            select {icon}
             from Pokemon
             where PokemonID = ?
             """, (pkmn_id,))
         img_data: bytes = cursor.fetchone()[0]
+        conn.close()
         return img_data
 
     # Update byte data for a Pokémon's normal appearance

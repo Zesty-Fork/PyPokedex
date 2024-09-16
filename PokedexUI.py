@@ -30,7 +30,7 @@ class PokedexApp:
     def _create_main_window(self):
         root = tk.Tk()
         root.title(TITLE)
-        root.geometry("800x600")
+        root.geometry("600x650")
         root.resizable(False, False)
 
         # Remove the minimize/maximize button (Windows only)
@@ -53,10 +53,13 @@ class PokedexApp:
         self.pkmn_tree.heading("NationalDexNo", text="#")
         self.pkmn_tree.heading("PokemonName", text="Pokemon")
 
-        # Control variable declarations
-        pkmn_games: list = self.db.get_pkmn_games()
-        self.pkmn_game_om = tk.OptionMenu(root, *pkmn_games)
+        # Pokemon games option menu
+        self.pkmn_games: dict = self.db.get_pkmn_games()
+        self.cur_game: tk.StringVar = tk.StringVar(root, list(self.pkmn_games.keys())[0])
+        self.pkmn_game_om = tk.OptionMenu(root, self.cur_game, *self.pkmn_games.keys(), command=self._on_game_selected)
         self.pkmn_icon_lbl = tk.Label(root)
+
+        # Game dex option menu
 
         # Bindings
         self.pkmn_tree.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
@@ -70,12 +73,6 @@ class PokedexApp:
         self.pkmn_stats_frame.grid(column=1, row=1)
 
         self._refresh_pkmn_list()
-
-        self.pkmn_tree.focus_set()
-        children: tuple = self.pkmn_tree.get_children()
-        if children:
-            self.pkmn_tree.focus(children[0])
-            self.pkmn_tree.selection_set(children[0])
 
         # Start loop
         root.mainloop()
@@ -103,12 +100,15 @@ class PokedexApp:
         for pokemon in self.db.get_pkmn_national_dex():
             self.pkmn_tree.insert("", tk.END, values=pokemon)
 
-    def _refresh_pkmn_icon(self) -> None:
-        if SHINY:
-            icon_data: bytes = self.db.get_icon_shiny(self.cur_pokemon_id)
-        else:
-            icon_data: bytes = self.db.get_icon_normal(self.cur_pokemon_id)
+        # Focus first item
+        self.pkmn_tree.focus_set()
+        children: tuple = self.pkmn_tree.get_children()
+        if children:
+            self.pkmn_tree.focus(children[0])
+            self.pkmn_tree.selection_set(children[0])
 
+    def _refresh_pkmn_icon(self) -> None:
+        icon_data: bytes = self.db.get_pkmn_icon(self.cur_pokemon_id, SHINY)
         self.pkmn_icon = tk.PhotoImage(data=icon_data)
         self.pkmn_icon_lbl.config(image=self.pkmn_icon)
 
@@ -127,6 +127,10 @@ class PokedexApp:
 
     def _on_form_selected(self, event):
         pass
+
+    def _on_game_selected(self, event):
+        game_id: int = self.pkmn_games[event]
+
 
 
 def main():
