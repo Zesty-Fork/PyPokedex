@@ -59,8 +59,8 @@ class PokeDexDB:
             pkmn_stats.extend([0, 0, 0, 0, 0, 0])
         return pkmn_stats
 
-    def get_pkmn_games(self):
-        pkmn_games: dict = {}
+    def get_games(self):
+        games: dict = {}
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""
@@ -70,9 +70,9 @@ class PokeDexDB:
             order by GameID
             """)
         for game_id, game_name in cursor.fetchall():
-            pkmn_games[game_name] = game_id
+            games[game_name] = game_id
         conn.close()
-        return pkmn_games
+        return games
 
     # Get byte data for a Pokémon's appearance
     def get_pkmn_icon(self, pkmn_id: int, shiny: bool) -> bytes:
