@@ -1,6 +1,6 @@
 """
 SELECT max(ss.HP) as  MaxHP
-	,max(max(ss.ATK, ss.DEF, ss.SPA, ss.SPE)) as  MaxStat
+,max(max(ss.ATK, ss.DEF, ss.SPA, ss.SPE)) as  MaxStat
 FROM Pokemon as p
 JOIN PokeDex as pd on pd.PokemonID = p.PokemonID
 JOIN GameDex as gd on gd.GameDexID = pd.GameDexID
@@ -17,6 +17,7 @@ import sqlite3
 class PokeDexDB:
     def __init__(self):
         self._database: str = "DB/PokeDB.sqlite3"
+        self.cur_pokemon_id: int = 0
 
     # Return a list of Pokémon base forms from the National Dex
     def get_pkmn_national_dex(self) -> list:
@@ -35,7 +36,7 @@ class PokeDexDB:
         return national_dex_pokemon
 
     # Return a list of Pokémon stats
-    def get_pkmn_stats(self, pkmn_id: int) -> list:
+    def get_stats(self) -> list:
         pkmn_stats: list = []
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
@@ -49,7 +50,7 @@ class PokeDexDB:
             from StatSet s
             join PokeDex pd on pd.StatSetID = s.StatSetID
             where pd.PokemonID = ?
-            """, (pkmn_id,))
+            """, (self.cur_pokemon_id,))
         result = cursor.fetchone()
         conn.close()
 
@@ -75,7 +76,7 @@ class PokeDexDB:
         return games
 
     # Get byte data for a Pokémon's appearance
-    def get_pkmn_icon(self, pkmn_id: int, shiny: bool) -> bytes:
+    def get_pkmn_icon(self, shiny: bool) -> bytes:
         icon: str = ""
         if shiny:
             icon += "IconShiny"
@@ -87,37 +88,37 @@ class PokeDexDB:
             select {icon}
             from Pokemon
             where PokemonID = ?
-            """, (pkmn_id,))
+            """, (self.cur_pokemon_id,))
         img_data: bytes = cursor.fetchone()[0]
         conn.close()
         return img_data
 
     # Update byte data for a Pokémon's normal appearance
-    def update_icon_normal(self, pkmn_id: int, image_blob: bytes):
+    def update_icon_normal(self, image_blob: bytes):
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 update Pokemon
                 set IconNormal = ?
                 where PokemonID = ?
-                """, (image_blob, pkmn_id))
+                """, (image_blob, self.cur_pokemon_id))
             conn.commit()
 
     # Update byte data for a Pokémon's shiny appearance
-    def update_icon_shiny(self, pkmn_id: int, image_blob: bytes):
+    def update_icon_shiny(self, image_blob: bytes):
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
             cursor.execute("""
                 update NationalDex
                 set IconShiny = ?
                 where PokemonID = ?
-                """, (image_blob, pkmn_id))
+                """, (image_blob, self.cur_pokemon_id))
             conn.commit()
 
-    def split_gender_forms(self, pkmn_id: int):
+    def split_gender_forms(self):
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
-            cursor.execute("update NationalDex set FormName = 'Male' where PokemonID = ?", (pkmn_id,))
+            cursor.execute("update NationalDex set FormName = 'Male' where PokemonID = ?", (self.cur_pokemon_id,))
             cursor.execute("""
                 insert into NationalDex (NationalDexID, FormID, PokemonName, FormName)
                 select nd.NationalDexID
@@ -132,7 +133,7 @@ class PokeDexDB:
                     group by NationalDexID
                     ) ndf on ndf.NationalDexID = nd.NationalDexID
                 where nd.PokemonID = ?
-                """, (pkmn_id,))
+                """, (self.cur_pokemon_id,))
             cursor.execute("""
                 insert into PokemonStats (PokemonID, GenerationID, HP, ATK, DEF, SPA, SPD, SPE)
                 select (select Max(PokemonID) from NationalDex)
@@ -145,10 +146,10 @@ class PokeDexDB:
                     ,SPE
                 from PokemonStats
                 where PokemonID = ?
-                """, (pkmn_id,))
+                """, (self.cur_pokemon_id,))
             conn.commit()
 
-    def add_gigantamax_form(self, pkmn_id: int):
+    def add_gigantamax_form(self):
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -165,7 +166,7 @@ class PokeDexDB:
                     group by NationalDexID
                     ) ndf on ndf.NationalDexID = nd.NationalDexID
                 where nd.PokemonID = ?
-                """, (pkmn_id,))
+                """, (self.cur_pokemon_id,))
             cursor.execute("""
                 insert into PokemonStats (PokemonID, GenerationID, HP, ATK, DEF, SPA, SPD, SPE)
                 select (select Max(PokemonID) from NationalDex)
@@ -179,5 +180,5 @@ class PokeDexDB:
                 from PokemonStats
                 where PokemonID = ?
                     and GenerationID = 8
-                """, (pkmn_id,))
+                """, (self.cur_pokemon_id,))
             conn.commit()
