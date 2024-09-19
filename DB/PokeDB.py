@@ -80,7 +80,6 @@ class PokeDexDB:
         return games
 
     def get_dexes(self) -> list:
-        print(self.cur_dex)
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""

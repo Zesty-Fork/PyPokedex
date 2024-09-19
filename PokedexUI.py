@@ -1,5 +1,4 @@
 # Python Libraries
-import tkinter
 from tkinter import END, Label, PhotoImage, StringVar, TclError, Tk
 from tkinter.ttk import Frame, OptionMenu, Treeview
 
@@ -54,8 +53,6 @@ class PokedexApp:
         self.pokemon_frame.grid(column=0, row=1)
         self.stats_frame.frame_grid(1, 1)
 
-        # self._refresh_pkmn_list()
-
         # Start loop
         root.mainloop()
 
@@ -105,7 +102,7 @@ class PokedexApp:
             self.pokemon_selector.focus(children[0])
             self.pokemon_selector.selection_set(children[0])
 
-    def _refresh_pkmn_icon(self) -> None:
+    def _refresh_icon(self) -> None:
         icon_data: bytes = self.db.get_pkmn_icon(SHINY)
         self.pkmn_icon = PhotoImage(data=icon_data)
         self.pkmn_icon_lbl.config(image=self.pkmn_icon)
@@ -113,10 +110,12 @@ class PokedexApp:
     # Event Handlers
     def _on_pokemon_selected(self, event):
         pokemon = self.pokemon_selector.focus()
-        pokemon_id = self.pokemon_selector.item(pokemon)["values"][0]
-        self.db.set_pokemon_id(pokemon_id)
-
-        self._refresh_pkmn_icon()
+        if pokemon:
+            pokemon_id = self.pokemon_selector.item(pokemon)["values"][0]
+            self.db.set_pokemon_id(pokemon_id)
+        else:
+            self.db.set_pokemon_id(0)
+        self._refresh_icon()
         self.stats_frame.refresh_stats(self.db.get_stats())
 
     def _on_form_selected(self, event):
@@ -133,13 +132,19 @@ class PokedexApp:
 
     def _refresh_games(self):
         self.game_selector["menu"].delete(0, END)
-        for game in self.db.get_games():
-            self.game_selector["menu"].add_command(label=game, command=lambda g=game: self.game_var.set(g))
+        games: list = self.db.get_games()
+        if games:
+            for game in games:
+                self.game_selector["menu"].add_command(label=game, command=lambda g=game: self.game_var.set(g))
+            self.game_var.set(games[0])
 
     def _refresh_dexes(self):
         self.dex_selector["menu"].delete(0, END)
-        for dex in self.db.get_dexes():
-            self.dex_selector["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
+        dexes: list = self.db.get_dexes()
+        if dexes:
+            for dex in dexes:
+                self.dex_selector["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
+            self.dex_var.set(dexes[0])
 
 
 def main():
