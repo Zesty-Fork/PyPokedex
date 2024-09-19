@@ -18,22 +18,29 @@ class PokeDexDB:
     def __init__(self):
         self._database: str = "DB/PokeDB.sqlite3"
         self.cur_pokemon_id: int = 0
+        self.cur_game: str = ""
+        self.cur_dex: str = ""
 
     # Return a list of Pokémon base forms from the National Dex
-    def get_pkmn_national_dex(self) -> list:
-        national_dex_pokemon: list = []
-        with sqlite3.connect(self._database) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                select PokemonID
-                    ,NationalDexID
-                    ,PokemonName
-                from Pokemon
-                where FormID = 1
-                order by NationalDexID, FormID
-                """)
-            national_dex_pokemon.extend(cursor.fetchall())
-        return national_dex_pokemon
+    def get_pokemon(self) -> list:
+        conn = sqlite3.connect(self._database)
+        cursor = conn.cursor()
+        cursor.execute("""
+            select p.PokemonID
+                ,pd.DexOrder
+                ,p.PokemonName
+            from Pokemon p
+            join PokeDex pd on pd.PokemonID = p.PokemonID
+            join GameDex gd on gd.GameDexID = pd.GameDexID
+            join Game g on g.GameID = gd.GameID
+            where p.FormID = 1
+                and g.GameName = ?
+                and gd.GameDexName = ?
+            order by pd.DexOrder, p.FormID
+            """, (self.cur_game, self.cur_dex))
+        pokemon: list = [p for p in cursor.fetchall()]
+        conn.close()
+        return pokemon
 
     # Return a list of Pokémon stats
     def get_stats(self) -> list:
@@ -60,20 +67,32 @@ class PokeDexDB:
             pkmn_stats.extend([0, 0, 0, 0, 0, 0])
         return pkmn_stats
 
-    def get_games(self):
-        games: dict = {}
+    def get_games(self) -> list:
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""
-            select GameID
-                ,GameName
+            select GameName
             from Game
             order by GameID
             """)
-        for game_id, game_name in cursor.fetchall():
-            games[game_name] = game_id
+        games: list = [game[0] for game in cursor.fetchall()]
         conn.close()
         return games
+
+    def get_dexes(self) -> list:
+        print(self.cur_dex)
+        conn = sqlite3.connect(self._database)
+        cursor = conn.cursor()
+        cursor.execute("""
+            select gd.GameDexName
+            from GameDex gd
+            join Game g on g.GameID = gd.GameID
+            where g.GameName = ?
+            order by gd.GameDexID
+            """, (self.cur_game, ))
+        dexes: list = [dex[0] for dex in cursor.fetchall()]
+        conn.close()
+        return dexes
 
     # Get byte data for a Pokémon's appearance
     def get_pkmn_icon(self, shiny: bool) -> bytes:
@@ -182,3 +201,8 @@ class PokeDexDB:
                     and GenerationID = 8
                 """, (self.cur_pokemon_id,))
             conn.commit()
+
+    def set_pokemon_id(self, pokemon_id: int) -> None:
+        self.cur_pokemon_id = pokemon_id
+        if not self.cur_pokemon_id:
+            self.cur_pokemon_id = 0

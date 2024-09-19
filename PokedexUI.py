@@ -1,4 +1,5 @@
 # Python Libraries
+import tkinter
 from tkinter import END, Label, PhotoImage, StringVar, TclError, Tk
 from tkinter.ttk import Frame, OptionMenu, Treeview
 
@@ -20,9 +21,6 @@ class PokedexApp:
         # Control Variables
         self.pokemon_selector = None
         self.pkmn_icon_lbl = None
-
-        # Data Variables
-        self.games: dict = self.db.get_games()
 
         # Start application
         self._create_main_window()
@@ -56,16 +54,25 @@ class PokedexApp:
         self.pokemon_frame.grid(column=0, row=1)
         self.stats_frame.frame_grid(1, 1)
 
-        self._refresh_pkmn_list()
+        # self._refresh_pkmn_list()
 
         # Start loop
         root.mainloop()
 
     def _set_dex_controls(self):
-        self.cur_game: StringVar = StringVar(self.dex_frame, list(self.games.keys())[0])
-        self.game_selector = OptionMenu(self.dex_frame, self.cur_game, *self.games.keys(),
-                                            command=self._on_game_selected)
+        self.game_var: StringVar = StringVar(self.dex_frame, "Not Selected")
+        self.dex_var: StringVar = StringVar(self.dex_frame, "Not Selected")
+
+        self.game_selector = OptionMenu(self.dex_frame, self.game_var)
+        self.dex_selector = OptionMenu(self.dex_frame, self.dex_var)
+
+        self.game_var.trace("w", self._on_game_changed)
+        self.dex_var.trace("w", self._on_dex_changed)
+
         self.game_selector.grid(column=0, row=0)
+        self.dex_selector.grid(column=1, row=0)
+
+        self._refresh_games()
 
     def _set_pokemon_controls(self):
         self.pokemon_selector = Treeview(
@@ -85,7 +92,7 @@ class PokedexApp:
         self.pokemon_selector.delete(*self.pokemon_selector.get_children())
 
         # Populate Tree
-        for pokemon in self.db.get_pkmn_national_dex():
+        for pokemon in self.db.get_pokemon():
             self.pokemon_selector.insert("", END, values=pokemon)
 
         self._focus_first_pokemon()
@@ -103,24 +110,36 @@ class PokedexApp:
         self.pkmn_icon = PhotoImage(data=icon_data)
         self.pkmn_icon_lbl.config(image=self.pkmn_icon)
 
-    def _update_cur_pkmn_id(self) -> None:
-        selected_pokemon = self.pokemon_selector.focus()
-        self.db.cur_pokemon_id = self.pokemon_selector.item(selected_pokemon)["values"][0]
-
-        if not self.db.cur_pokemon_id:
-            self.db.cur_pokemon_id = 0
-
     # Event Handlers
     def _on_pokemon_selected(self, event):
-        self._update_cur_pkmn_id()
+        pokemon = self.pokemon_selector.focus()
+        pokemon_id = self.pokemon_selector.item(pokemon)["values"][0]
+        self.db.set_pokemon_id(pokemon_id)
+
         self._refresh_pkmn_icon()
         self.stats_frame.refresh_stats(self.db.get_stats())
 
     def _on_form_selected(self, event):
         pass
 
-    def _on_game_selected(self, event):
-        game_id: int = self.games[event]
+    def _on_game_changed(self, *args):
+        self.db.cur_game = self.game_var.get()
+        self.dex_var.set("Not Selected")
+        self._refresh_dexes()
+
+    def _on_dex_changed(self, *args):
+        self.db.cur_dex = self.dex_var.get()
+        self._refresh_pkmn_list()
+
+    def _refresh_games(self):
+        self.game_selector["menu"].delete(0, END)
+        for game in self.db.get_games():
+            self.game_selector["menu"].add_command(label=game, command=lambda g=game: self.game_var.set(g))
+
+    def _refresh_dexes(self):
+        self.dex_selector["menu"].delete(0, END)
+        for dex in self.db.get_dexes():
+            self.dex_selector["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
 
 
 def main():

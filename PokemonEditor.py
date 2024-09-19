@@ -82,7 +82,7 @@ class PokemonEditor:
         self.pkmn_tree.delete(*self.pkmn_tree.get_children())
 
         # Populate Tree
-        for pokemon in self.db.get_pkmn_national_dex():
+        for pokemon in self.db.get_pokemon():
             self.pkmn_tree.insert("", tk.END, values=pokemon)
 
     # Event Handlers
