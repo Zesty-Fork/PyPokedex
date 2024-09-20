@@ -1,8 +1,10 @@
 from tkinter.ttk import Frame, Label, Progressbar
 
 
+# Class to extend Tkinter Frame's functionality
+# UI element to display Pokemon stats
 class StatsFrame:
-    def __init__(self, root):
+    def __init__(self, root) -> None:
         self.stats_frame = Frame(root)
         self.stat_bars: list = []
         self.stat_labels: list = []
@@ -42,7 +44,7 @@ class StatsFrame:
 
 
 # Main function for debugging purposes
-def main():
+def main() -> None:
     from tkinter import Tk
     root = Tk()
     sf = StatsFrame(root)

@@ -1,10 +1,11 @@
 # Python Libraries
 from tkinter import END, Label, PhotoImage, StringVar, TclError, Tk
-from tkinter.ttk import Frame, OptionMenu, Treeview
+from tkinter.ttk import Frame, OptionMenu
 
 # Local Libraries
 from DB.PokeDB import PokeDexDB
-from StatsFrame import StatsFrame
+from UI.StatsFrame import StatsFrame
+from UI.PokemonFrame import PokemonFrame
 
 # Global Declarations
 TITLE: str = "RegionalDexBuilder"
@@ -18,7 +19,6 @@ class PokedexApp:
         self.db: PokeDexDB = PokeDexDB()
 
         # Control Variables
-        self.pokemon_selector = None
         self.pkmn_icon_lbl = None
 
         # Start application
@@ -38,11 +38,10 @@ class PokedexApp:
 
         # Frame variables
         self.dex_frame = Frame(root)
-        self.pokemon_frame = Frame(root)
+        self.pokemon_frame = PokemonFrame(root)
         self.stats_frame = StatsFrame(root)
 
         self._set_dex_controls()
-        self._set_pokemon_controls()
 
         # Main control placement
         self.pkmn_icon_lbl = Label(root)
@@ -50,8 +49,10 @@ class PokedexApp:
 
         # Frame placement
         self.dex_frame.grid(column=0, row=0)
-        self.pokemon_frame.grid(column=0, row=1)
+        self.pokemon_frame.frame_grid(0, 1)
         self.stats_frame.frame_grid(1, 1)
+
+        self.pokemon_frame.selector.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
 
         # Start loop
         root.mainloop()
@@ -71,37 +72,6 @@ class PokedexApp:
 
         self._refresh_games()
 
-    def _set_pokemon_controls(self):
-        self.pokemon_selector = Treeview(
-            self.pokemon_frame,
-            columns=["PokemonID", "NationalDexNo", "PokemonName"],
-            displaycolumns=["NationalDexNo", "PokemonName"],
-            show="headings")
-
-        self.pokemon_selector.column("NationalDexNo", width=30, minwidth=30)
-        self.pokemon_selector.heading("NationalDexNo", text="#")
-        self.pokemon_selector.heading("PokemonName", text="Pokemon")
-        self.pokemon_selector.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
-        self.pokemon_selector.grid(column=0, row=0, rowspan=2)
-
-    def _refresh_pkmn_list(self) -> None:
-        # Delete items from tree
-        self.pokemon_selector.delete(*self.pokemon_selector.get_children())
-
-        # Populate Tree
-        for pokemon in self.db.get_pokemon():
-            self.pokemon_selector.insert("", END, values=pokemon)
-
-        self._focus_first_pokemon()
-
-    def _focus_first_pokemon(self):
-        # Focus first item
-        self.pokemon_selector.focus_set()
-        children: tuple = self.pokemon_selector.get_children()
-        if children:
-            self.pokemon_selector.focus(children[0])
-            self.pokemon_selector.selection_set(children[0])
-
     def _refresh_icon(self) -> None:
         icon_data: bytes = self.db.get_pkmn_icon(SHINY)
         self.pkmn_icon = PhotoImage(data=icon_data)
@@ -109,12 +79,8 @@ class PokedexApp:
 
     # Event Handlers
     def _on_pokemon_selected(self, event):
-        pokemon = self.pokemon_selector.focus()
-        if pokemon:
-            pokemon_id = self.pokemon_selector.item(pokemon)["values"][0]
-            self.db.set_pokemon_id(pokemon_id)
-        else:
-            self.db.set_pokemon_id(0)
+        pokemon_id: int = self.pokemon_frame.get_pokemon_id()
+        self.db.set_pokemon_id(pokemon_id)
         self._refresh_icon()
         self.stats_frame.refresh_stats(self.db.get_stats())
 
@@ -128,7 +94,8 @@ class PokedexApp:
 
     def _on_dex_changed(self, *args):
         self.db.cur_dex = self.dex_var.get()
-        self._refresh_pkmn_list()
+        pokemon: list = self.db.get_pokemon()
+        self.pokemon_frame.refresh_pokemon(pokemon)
 
     def _refresh_games(self):
         self.game_selector["menu"].delete(0, END)
