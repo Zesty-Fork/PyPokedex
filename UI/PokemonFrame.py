@@ -1,5 +1,5 @@
-from tkinter import END, NS, VERTICAL
-from tkinter.ttk import Frame, Treeview, Scrollbar
+from tkinter import END, EW, NS, StringVar, VERTICAL
+from tkinter.ttk import Entry, Frame, Treeview, Scrollbar
 
 
 # Class to extend Tkinter Frame's functionality
@@ -7,8 +7,18 @@ from tkinter.ttk import Frame, Treeview, Scrollbar
 class PokemonFrame:
     def __init__(self, root) -> None:
         self.pokemon_frame = Frame(root)
+
+        # For storing passed Pokémon data
+        self.selector_data: list = []
+
+        # UI declarations
         self.selector = Treeview(self.pokemon_frame)
         self.selector_scrollbar = Scrollbar(self.pokemon_frame)
+        self.search_var = StringVar()
+        self.search_bar = Entry(self.pokemon_frame, textvariable=self.search_var)
+
+        # Configure UI controls
+        self._build_search_bar()
         self._build_selector()
 
     # Focus first item in selector
@@ -21,14 +31,28 @@ class PokemonFrame:
 
     # Flushes selector values, and replaces them with the passed Pokémon data.
     def refresh_pokemon(self, pokemon: list) -> None:
+        # Store passed data
+        self.selector_data = pokemon
+
         # Delete items from tree
         self.selector.delete(*self.selector.get_children())
 
         # Populate Tree
-        for values in pokemon:
+        for values in self.selector_data:
             self.selector.insert("", END, values=values)
 
+        self._on_search_var_changed()
         self.focus_first()
+
+    # Search Pokémon in selector by either name or dex number.
+    def search_pokemon(self, term: str):
+        for item in self.selector.get_children():
+            self.selector.delete(item)
+        for values in self.selector_data:
+            if term in values[2].lower() or term == str(values[1]):
+                self.selector.insert("", END, values=values)
+        self.focus_first()
+        self.search_bar.focus_set()
 
     # Returns Pokémon ID of current selection.
     def get_pokemon_id(self) -> int:
@@ -43,7 +67,14 @@ class PokemonFrame:
     def to_grid(self, col: int, row: int) -> None:
         self.pokemon_frame.grid(column=col, row=row)
 
-    # Build TKinter controls within frame.
+    # Build TK controls within frame.
+    def _build_search_bar(self):
+        self.search_var.trace("w", self._on_search_var_changed)
+
+        # Place controls
+        self.search_bar.grid(column=0, row=0, columnspan=2, sticky=EW)
+
+    # Build Pokémon selector (TreeView) plus scrollbar within frame.
     def _build_selector(self):
         # Configure selector
         self.selector.config(columns=["PokemonID", "NationalDexNo", "PokemonName"],
@@ -58,8 +89,13 @@ class PokemonFrame:
         self.selector_scrollbar.config(orient=VERTICAL, command=self.selector.yview)
 
         # Place controls
-        self.selector.grid(column=0, row=0, rowspan=2)
-        self.selector_scrollbar.grid(column=1, row=0, rowspan=2, sticky=NS)
+        self.selector.grid(column=0, row=1, rowspan=2)
+        self.selector_scrollbar.grid(column=1, row=1, rowspan=2, sticky=NS)
+
+    # Event handlers
+    def _on_search_var_changed(self, *args):
+        term: str = self.search_var.get().lower()
+        self.search_pokemon(term)
 
 
 # Main function for debugging purposes

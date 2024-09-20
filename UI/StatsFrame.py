@@ -2,7 +2,7 @@ from tkinter.ttk import Frame, Label, Progressbar
 
 
 # Class to extend Tkinter Frame's functionality
-# UI element to display Pokemon stats
+# UI element to display Pokémon stats
 class StatsFrame:
     def __init__(self, root) -> None:
         self.stats_frame = Frame(root)
