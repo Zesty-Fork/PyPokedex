@@ -56,8 +56,12 @@ class PokeDexDB:
                 ,SPE
             from StatSet s
             join PokeDex pd on pd.StatSetID = s.StatSetID
-            where pd.PokemonID = ?
-            """, (self.cur_pokemon_id,))
+            join GameDex gd on gd.GameDexID = pd.GameDexID
+            join Game g on g.GameID = gd.GameID
+            where gd.GameDexName = ?
+                and g.GameName = ?
+                and pd.PokemonID = ?
+            """, (self.cur_dex, self.cur_game, self.cur_pokemon_id))
         result = cursor.fetchone()
         conn.close()
 
