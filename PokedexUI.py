@@ -8,7 +8,7 @@ from UI.StatsFrame import StatsFrame
 from UI.PokemonFrame import PokemonFrame
 
 # Global Declarations
-TITLE: str = "RegionalDexBuilder"
+TITLE: str = "Pokedex"
 VERSION: str = "1.0.0"  # TODO move to attributes file of some kind
 SHINY: bool = True
 
@@ -49,8 +49,8 @@ class PokedexApp:
 
         # Frame placement
         self.dex_frame.grid(column=0, row=0)
-        self.pokemon_frame.frame_grid(0, 1)
-        self.stats_frame.frame_grid(1, 1)
+        self.pokemon_frame.to_grid(0, 1)
+        self.stats_frame.to_grid(1, 1)
 
         self.pokemon_frame.selector.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
 
@@ -115,7 +115,7 @@ class PokedexApp:
 
 
 def main():
-    pokedex = PokedexApp()
+    app = PokedexApp()
 
 
 if __name__ == "__main__":
