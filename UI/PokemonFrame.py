@@ -56,7 +56,7 @@ class PokemonFrame:
 
     # Returns Pokémon ID of current selection.
     def get_pokemon_id(self) -> int:
-        pokemon = self.selector.focus()
+        pokemon: str = self.selector.focus()
         if pokemon:
             pokemon_id: int = self.selector.item(pokemon)["values"][0]
         else:
@@ -68,10 +68,8 @@ class PokemonFrame:
         self.pokemon_frame.grid(column=col, row=row)
 
     # Build TK controls within frame.
-    def _build_search_bar(self):
+    def _build_search_bar(self) -> None:
         self.search_var.trace("w", self._on_search_var_changed)
-
-        # Place controls
         self.search_bar.grid(column=0, row=0, columnspan=2, sticky=EW)
 
     # Build Pokémon selector (TreeView) plus scrollbar within frame.
