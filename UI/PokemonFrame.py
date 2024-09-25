@@ -46,8 +46,7 @@ class PokemonFrame:
 
     # Search Pokémon in selector by either name or dex number.
     def search_pokemon(self, term: str):
-        for item in self.selector.get_children():
-            self.selector.delete(item)
+        self.selector.delete(*self.selector.get_children())
         for values in self.selector_data:
             if term in values[2].lower() or term == str(values[1]):
                 self.selector.insert("", END, values=values)
