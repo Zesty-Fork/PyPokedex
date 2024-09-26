@@ -1,11 +1,10 @@
 # Python Libraries
 from tkinter import END, Label, PhotoImage, StringVar, TclError, Tk
-from tkinter.ttk import Frame, OptionMenu
+from tkinter.ttk import Frame, OptionMenu, Notebook
 
 # Local Libraries
 from DB.PokeDB import PokeDexDB
-from UI.StatsFrame import StatsFrame
-from UI.PokemonFrame import PokemonFrame
+from UI.ViewerTab import ViewerTab
 
 # Global Declarations
 TITLE: str = "Pokedex"
@@ -36,10 +35,18 @@ class PokedexApp:
         except TclError:
             print("Not supported on your platform")
 
+        self.tab_menu: Notebook = Notebook(root)
+        self.tab1: Frame = Frame(self.tab_menu)
+        self.tab2: Frame = Frame(self.tab_menu)
+
+        self.tab_menu.add(self.tab1, text="Pokedex Viewer")
+        self.tab_menu.add(self.tab2, text="Pokedex Editor")
+
+        self.viewer_tab: ViewerTab = ViewerTab(self.tab1)
+        # self.editor_tab: Frame = Frame(self.tab_menu)
+
         # Frame variables
         self.dex_frame = Frame(root)
-        self.pokemon_frame = PokemonFrame(root)
-        self.stats_frame = StatsFrame(root)
 
         self._set_dex_controls()
 
@@ -49,10 +56,9 @@ class PokedexApp:
 
         # Frame placement
         self.dex_frame.grid(column=0, row=0)
-        self.pokemon_frame.to_grid(0, 1)
-        self.stats_frame.to_grid(1, 1)
+        self.tab_menu.grid(column=0, row=1)
 
-        self.pokemon_frame.selector.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
+        self.viewer_tab.selector.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
 
         # Start loop
         root.mainloop()
@@ -79,10 +85,10 @@ class PokedexApp:
 
     # Event Handlers
     def _on_pokemon_selected(self, event):
-        pokemon_id: int = self.pokemon_frame.get_pokemon_id()
+        pokemon_id: int = self.viewer_tab.get_pokemon_id()
         self.db.set_pokemon_id(pokemon_id)
         self._refresh_icon()
-        self.stats_frame.refresh_stats(self.db.get_stats())
+        self.viewer_tab.refresh_stats(self.db.get_stats())
 
     def _on_form_selected(self, event):
         pass
@@ -95,7 +101,7 @@ class PokedexApp:
     def _on_dex_changed(self, *args):
         self.db.cur_dex = self.dex_var.get()
         pokemon: list = self.db.get_pokemon()
-        self.pokemon_frame.refresh_pokemon(pokemon)
+        self.viewer_tab.refresh_pokemon(pokemon)
 
     def _refresh_games(self):
         self.game_selector["menu"].delete(0, END)
