@@ -1,4 +1,4 @@
-from tkinter import StringVar, END, EW, VERTICAL, NS
+from tkinter import StringVar, END, VERTICAL, NS, PhotoImage, E
 from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry
 from typing import Optional
 
@@ -12,6 +12,9 @@ class ViewerTab:
         self.stats_subframe: Optional[Frame] = None
 
         # Control headers.
+        self.icon: Optional[PhotoImage] = None
+        self.icon_lbl: Optional[Label] = None
+        self.search_label: Optional[Label] = None
         self.search_var: StringVar = StringVar()
         self.search_bar: Optional[Entry] = None
         self.selector: Optional[Treeview] = None
@@ -32,11 +35,13 @@ class ViewerTab:
         self.stats_subframe = Frame(self.viewer_frame)
 
         # Control declarations/placement.
+        self.icon_lbl = Label(self.stats_subframe)
+
         labels: list = ["HP", "ATK", "DEF", "SPA", "SPD", "SPE"]
 
         for i, label in enumerate(labels):
             stat_label: Label = Label(self.stats_subframe, text=labels[i])
-            stat_label.grid(column=0, row=i)
+            stat_label.grid(column=0, row=i+1)
             self.stat_labels.append(stat_label)
 
             stat_bar: Progressbar = Progressbar(
@@ -45,8 +50,10 @@ class ViewerTab:
                 length=200,
                 mode='determinate'
             )
-            stat_bar.grid(column=1, row=i)
+            stat_bar.grid(column=1, row=i+1)
             self.stat_bars.append(stat_bar)
+
+        self.icon_lbl.grid(column=1, row=0, sticky=E)
 
         # Place Subframe.
         self.stats_subframe.grid(column=1, row=0)
@@ -57,6 +64,7 @@ class ViewerTab:
         self.selector_subframe = Frame(self.viewer_frame)
 
         # Control declarations
+        self.search_label = Label(self.selector_subframe, text="Search:")
         self.search_bar = Entry(self.selector_subframe, textvariable=self.search_var)
         self.selector: Treeview = Treeview(
             self.selector_subframe,
@@ -79,9 +87,10 @@ class ViewerTab:
         self.search_var.trace("w", self.on_search_var_changed)
 
         # Place controls
-        self.search_bar.grid(column=0, row=0, columnspan=2, sticky=EW)
-        self.selector.grid(column=0, row=1)
-        self.selector_scrollbar.grid(column=1, row=1, sticky=NS)
+        self.search_label.grid(column=0, row=0, pady=10)
+        self.search_bar.grid(column=1, row=0, pady=10, ipadx=30, columnspan=2)
+        self.selector.grid(column=0, row=1, padx=10, ipady=50, columnspan=4)
+        self.selector_scrollbar.grid(column=4, row=1, sticky=NS)
 
         # Place Subframe
         self.selector_subframe.grid(column=0, row=0)
@@ -91,7 +100,9 @@ class ViewerTab:
         for i, stat_bar in enumerate(self.stat_bars):
             stat_bar["value"] = stats[i]
 
-
+    def refresh_icon(self, icon_data: bytes) -> None:
+        self.icon = PhotoImage(data=icon_data)
+        self.icon_lbl.config(image=self.icon)
 
     def focus_first(self) -> None:
         self.selector.focus_set()
