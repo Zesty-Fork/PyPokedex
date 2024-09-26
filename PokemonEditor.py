@@ -90,7 +90,7 @@ class PokemonEditor:
         selected_pokemon = self.pkmn_tree.focus()
         self.cur_pokemon_id = self.pkmn_tree.item(selected_pokemon)["values"][0]
 
-        icon_normal_data: bytes = self.db.get_icon_normal(self.cur_pokemon_id)
+        icon_normal_data: bytes = self.db.get_pkmn_icon(self.cur_pokemon_id, False)
         if icon_normal_data:
             self.icon_normal = tk.PhotoImage(data=icon_normal_data)
             self.icon_normal_lbl.config(image=self.icon_normal, width=112, height=112)
@@ -98,7 +98,7 @@ class PokemonEditor:
             self.icon_normal = tk.PhotoImage(file="Placeholder.png")
             self.icon_normal_lbl.config(image=self.icon_normal, width=112, height=112)
 
-        icon_shiny_data: bytes = self.db.get_icon_shiny(self.cur_pokemon_id)
+        icon_shiny_data: bytes = self.db.get_pkmn_icon(self.cur_pokemon_id, True)
         if icon_shiny_data:
             self.icon_shiny = tk.PhotoImage(data=icon_shiny_data)
             self.icon_shiny_lbl.config(image=self.icon_shiny, width=112, height=112)

@@ -12,11 +12,20 @@ WHERE gd.GameDexID = 25
 
 # Python Libraries
 import sqlite3
+from os.path import dirname
+
+
+# Helper function to convert images to binary
+def image_to_blob(image_path: str) -> bytes:
+    blob: bytes = b""
+    with open(image_path, "rb") as image_file:
+        blob = image_file.read()
+    return blob
 
 
 class PokeDexDB:
     def __init__(self):
-        self._database: str = "DB/PokeDB.sqlite3"
+        self._database: str = f"{dirname(__file__)}/PokeDB.sqlite3"
         self.cur_pokemon_id: int = 0
         self.cur_game: str = ""
         self.cur_dex: str = ""
@@ -92,7 +101,7 @@ class PokeDexDB:
             join Game g on g.GameID = gd.GameID
             where g.GameName = ?
             order by gd.GameDexID
-            """, (self.cur_game, ))
+            """, (self.cur_game,))
         dexes: list = [dex[0] for dex in cursor.fetchall()]
         conn.close()
         return dexes
@@ -131,7 +140,7 @@ class PokeDexDB:
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                update NationalDex
+                update Pokemon
                 set IconShiny = ?
                 where PokemonID = ?
                 """, (image_blob, self.cur_pokemon_id))
