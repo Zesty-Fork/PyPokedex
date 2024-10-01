@@ -1,6 +1,7 @@
 # Python Libraries
-from tkinter import END, StringVar, TclError, Tk
-from tkinter.ttk import Frame, OptionMenu, Notebook
+from tkinter import TclError, Tk
+from tkinter.ttk import Frame, Notebook
+from typing import Optional
 
 # Local Libraries
 from DB.PokeDB import PokeDexDB
@@ -17,10 +18,18 @@ class PokedexApp:
         # Database
         self.db: PokeDexDB = PokeDexDB()
 
-        # Start application
-        self._create_main_window()
+        self.tab_menu: Optional[Notebook] = None
+        self.tab1: Optional[Frame] = None
+        self.tab2: Optional[Frame] = None
+        self.viewer_tab: Optional[ViewerTab] = None
 
-    def _create_main_window(self):
+        #
+        self.pokedex_headers: dict = {}
+
+        # Start application
+        self.create_main_window()
+
+    def create_main_window(self):
         root = Tk()
         root.title(TITLE)
         root.geometry("600x450")
@@ -39,77 +48,51 @@ class PokedexApp:
         self.tab_menu.add(self.tab1, text="Pokedex Viewer")
         self.tab_menu.add(self.tab2, text="Pokedex Editor")
 
-        self.viewer_tab: ViewerTab = ViewerTab(self.tab1)
+        self.viewer_tab = ViewerTab(self.tab1)
         # self.editor_tab: Frame = Frame(self.tab_menu)
 
-        # Frame variables
-        self.dex_frame = Frame(root)
-        self._set_dex_controls()
+        self.viewer_tab.selector.bind("<<TreeviewSelect>>", self.on_pokemon_changed)
+        self.viewer_tab.game_var.trace("w", self.on_game_changed)
+        self.viewer_tab.dex_var.trace("w", self.on_dex_changed)
+        games: list = self.db.get_games()
+        self.viewer_tab.refresh_games(games)
 
         # Frame placement
-        self.dex_frame.grid(column=0, row=0)
-        self.tab_menu.grid(column=0, row=1)
-
-        self.viewer_tab.selector.bind("<<TreeviewSelect>>", self.on_pokemon_selected)
+        self.tab_menu.grid(column=0, row=0)
 
         # Start loop
         root.mainloop()
 
-    def _set_dex_controls(self):
-        self.game_var: StringVar = StringVar(self.dex_frame, "Not Selected")
-        self.dex_var: StringVar = StringVar(self.dex_frame, "Not Selected")
-
-        self.game_selector = OptionMenu(self.dex_frame, self.game_var)
-        self.dex_selector = OptionMenu(self.dex_frame, self.dex_var)
-
-        self.game_var.trace("w", self.on_game_changed)
-        self.dex_var.trace("w", self.on_dex_changed)
-
-        self.game_selector.grid(column=0, row=0)
-        self.dex_selector.grid(column=1, row=0)
-
-        self._refresh_games()
-
     # Event Handlers
-    def on_pokemon_selected(self, event):
+    def on_pokemon_changed(self, event):
         pokemon_id: int = self.viewer_tab.get_pokemon_id()
-        self.db.set_pokemon_id(pokemon_id)
-        self.viewer_tab.refresh_stats(self.db.get_stats())
+        type_set_id: int = self.pokedex_headers[pokemon_id][0]
+        stat_set_id: int = self.pokedex_headers[pokemon_id][1]
+        ability_set_id: int = self.pokedex_headers[pokemon_id][2]
 
-        # Refresh icon
-        icon_data: bytes = self.db.get_pkmn_icon(SHINY)
+        type_icons: tuple = self.db.get_type_icons(type_set_id)
+        stats: list = self.db.get_stats(stat_set_id)
+        icon_data: bytes = self.db.get_pkmn_icon(pokemon_id, SHINY)
+
+        self.viewer_tab.refresh_type_icons(type_icons)
+        self.viewer_tab.refresh_stats(stats)
         self.viewer_tab.refresh_icon(icon_data)
 
-    def on_form_selected(self, event):
-        pass
-
     def on_game_changed(self, *args):
-        self.db.cur_game = self.game_var.get()
-        self.dex_var.set("Not Selected")
-        self._refresh_dexes()
+        game: str = self.viewer_tab.get_game()
+
+        # Refresh dex data
+        dexes: list = self.db.get_dexes(game)
+        self.viewer_tab.refresh_dexes(dexes)
 
     def on_dex_changed(self, *args):
-        self.db.cur_dex = self.dex_var.get()
+        game: str = self.viewer_tab.get_game()
+        dex: str = self.viewer_tab.get_dex()
 
         # Refresh Pokémon list
-        pokemon: list = self.db.get_pokemon()
+        self.pokedex_headers = self.db.get_pokedex_headers(game, dex)
+        pokemon: list = self.db.get_pokemon(game, dex)
         self.viewer_tab.refresh_pokemon(pokemon)
-
-    def _refresh_games(self):
-        self.game_selector["menu"].delete(0, END)
-        games: list = self.db.get_games()
-        if games:
-            for game in games:
-                self.game_selector["menu"].add_command(label=game, command=lambda g=game: self.game_var.set(g))
-            self.game_var.set(games[0])
-
-    def _refresh_dexes(self):
-        self.dex_selector["menu"].delete(0, END)
-        dexes: list = self.db.get_dexes()
-        if dexes:
-            for dex in dexes:
-                self.dex_selector["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
-            self.dex_var.set(dexes[0])
 
 
 def main():

@@ -7,7 +7,7 @@ JOIN GameDex as gd on gd.GameDexID = pd.GameDexID
 JOIN StatSet as ss on ss.StatSetID = pd.StatSetID
 WHERE gd.GameDexID = 25
 """
-
+import os
 # Handles database operations
 
 # Python Libraries
@@ -26,12 +26,29 @@ def image_to_blob(image_path: str) -> bytes:
 class PokeDexDB:
     def __init__(self):
         self._database: str = f"{dirname(__file__)}/PokeDB.sqlite3"
-        self.cur_pokemon_id: int = 0
-        self.cur_game: str = ""
-        self.cur_dex: str = ""
+
+    def get_pokedex_headers(self, game: str, dex: str) -> dict:
+        pokedex_headers: dict = {}
+        conn = sqlite3.connect(self._database)
+        cursor = conn.cursor()
+        cursor.execute("""
+            select pd.PokemonID
+                ,pd.TypeSetID
+                ,pd.StatSetID
+                ,pd.AbilitySetID
+            from PokeDex pd
+            join GameDex gd on gd.GameDexID = pd.GameDexID
+            join Game g on g.GameID = gd.GameID
+            where g.GameName = ?
+                and gd.GameDexName = ?
+            """, (game, dex))
+        for pd in cursor.fetchall():
+            pokedex_headers[pd[0]] = list(pd[1:])
+        conn.close()
+        return pokedex_headers
 
     # Return a list of Pokémon base forms from the National Dex
-    def get_pokemon(self) -> list:
+    def get_pokemon(self, game: str, dex: str) -> list:
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""
@@ -46,14 +63,30 @@ class PokeDexDB:
                 and g.GameName = ?
                 and gd.GameDexName = ?
             order by pd.DexOrder, p.FormID
-            """, (self.cur_game, self.cur_dex))
+            """, (game, dex))
         pokemon: list = [p for p in cursor.fetchall()]
         conn.close()
         return pokemon
 
+    # Get byte data for a Pokémon's types.
+    def get_type_icons(self, type_set_id: int) -> tuple:
+        conn = sqlite3.connect(self._database)
+        cursor = conn.cursor()
+        cursor.execute("""
+            select t1.TypeIcon as TypeIcon1
+                ,t2.TypeIcon as TypeIcon2
+            from TypeSet ts
+            join Type t1 on t1.TypeID = ts.PrimaryTypeID
+            join Type t2 on t2.TypeID = ts.SecondaryTypeID
+            where ts.TypeSetID = ?
+            """, (type_set_id,))
+        type_icons: tuple = cursor.fetchone()
+        conn.close()
+        return type_icons
+
     # Return a list of Pokémon stats
-    def get_stats(self) -> list:
-        pkmn_stats: list = []
+    def get_stats(self, stat_set_id: int) -> list:
+        stats: list = []
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""
@@ -63,22 +96,17 @@ class PokeDexDB:
                 ,SPA
                 ,SPD
                 ,SPE
-            from StatSet s
-            join PokeDex pd on pd.StatSetID = s.StatSetID
-            join GameDex gd on gd.GameDexID = pd.GameDexID
-            join Game g on g.GameID = gd.GameID
-            where gd.GameDexName = ?
-                and g.GameName = ?
-                and pd.PokemonID = ?
-            """, (self.cur_dex, self.cur_game, self.cur_pokemon_id))
+            from StatSet
+            where StatSetID = ?
+            """, (stat_set_id,))
         result = cursor.fetchone()
         conn.close()
 
         if result:
-            pkmn_stats.extend(result)
+            stats.extend(result)
         else:
-            pkmn_stats.extend([0, 0, 0, 0, 0, 0])
-        return pkmn_stats
+            stats.extend([0, 0, 0, 0, 0, 0])
+        return stats
 
     def get_games(self) -> list:
         conn = sqlite3.connect(self._database)
@@ -92,7 +120,7 @@ class PokeDexDB:
         conn.close()
         return games
 
-    def get_dexes(self) -> list:
+    def get_dexes(self, game: str) -> list:
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""
@@ -101,13 +129,13 @@ class PokeDexDB:
             join Game g on g.GameID = gd.GameID
             where g.GameName = ?
             order by gd.GameDexID
-            """, (self.cur_game,))
+            """, (game,))
         dexes: list = [dex[0] for dex in cursor.fetchall()]
         conn.close()
         return dexes
 
     # Get byte data for a Pokémon's appearance
-    def get_pkmn_icon(self, shiny: bool) -> bytes:
+    def get_pkmn_icon(self, pokemon_id: int, shiny: bool) -> bytes:
         icon: str = ""
         if shiny:
             icon += "IconShiny"
@@ -119,37 +147,31 @@ class PokeDexDB:
             select {icon}
             from Pokemon
             where PokemonID = ?
-            """, (self.cur_pokemon_id,))
+            """, (pokemon_id,))
         img_data: bytes = cursor.fetchone()[0]
         conn.close()
         return img_data
 
     # Update byte data for a Pokémon's normal appearance
-    def update_icon_normal(self, image_blob: bytes):
+    def update_pkmn_icon(self, image_blob: bytes, pokemon_id: int, shiny: bool):
+        icon: str = ""
+        if shiny:
+            icon += "IconShiny"
+        else:
+            icon += "IconNormal"
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(f"""
                 update Pokemon
-                set IconNormal = ?
+                set {icon} = ?
                 where PokemonID = ?
-                """, (image_blob, self.cur_pokemon_id))
+                """, (image_blob, pokemon_id))
             conn.commit()
 
-    # Update byte data for a Pokémon's shiny appearance
-    def update_icon_shiny(self, image_blob: bytes):
+    def split_gender_forms(self, pokemon_id: int):
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                update Pokemon
-                set IconShiny = ?
-                where PokemonID = ?
-                """, (image_blob, self.cur_pokemon_id))
-            conn.commit()
-
-    def split_gender_forms(self):
-        with sqlite3.connect(self._database) as conn:
-            cursor = conn.cursor()
-            cursor.execute("update NationalDex set FormName = 'Male' where PokemonID = ?", (self.cur_pokemon_id,))
+            cursor.execute("update NationalDex set FormName = 'Male' where PokemonID = ?", (pokemon_id,))
             cursor.execute("""
                 insert into NationalDex (NationalDexID, FormID, PokemonName, FormName)
                 select nd.NationalDexID
@@ -164,7 +186,7 @@ class PokeDexDB:
                     group by NationalDexID
                     ) ndf on ndf.NationalDexID = nd.NationalDexID
                 where nd.PokemonID = ?
-                """, (self.cur_pokemon_id,))
+                """, (pokemon_id,))
             cursor.execute("""
                 insert into PokemonStats (PokemonID, GenerationID, HP, ATK, DEF, SPA, SPD, SPE)
                 select (select Max(PokemonID) from NationalDex)
@@ -177,10 +199,10 @@ class PokeDexDB:
                     ,SPE
                 from PokemonStats
                 where PokemonID = ?
-                """, (self.cur_pokemon_id,))
+                """, (pokemon_id,))
             conn.commit()
 
-    def add_gigantamax_form(self):
+    def add_gigantamax_form(self, pokemon_id: int):
         with sqlite3.connect(self._database) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -197,7 +219,7 @@ class PokeDexDB:
                     group by NationalDexID
                     ) ndf on ndf.NationalDexID = nd.NationalDexID
                 where nd.PokemonID = ?
-                """, (self.cur_pokemon_id,))
+                """, (pokemon_id,))
             cursor.execute("""
                 insert into PokemonStats (PokemonID, GenerationID, HP, ATK, DEF, SPA, SPD, SPE)
                 select (select Max(PokemonID) from NationalDex)
@@ -211,10 +233,24 @@ class PokeDexDB:
                 from PokemonStats
                 where PokemonID = ?
                     and GenerationID = 8
-                """, (self.cur_pokemon_id,))
+                """, (pokemon_id,))
             conn.commit()
 
-    def set_pokemon_id(self, pokemon_id: int) -> None:
-        self.cur_pokemon_id = pokemon_id
-        if not self.cur_pokemon_id:
-            self.cur_pokemon_id = 0
+
+# Update byte data for a Pokémon's normal appearance
+def update_type_icon():
+    path = "C:/Users/NathanJones/Downloads"
+    for file in os.listdir(path):
+        if file.endswith(".png"):
+            blob = image_to_blob(f"{path}/{file}")
+            type_id = int(file.split(".")[0])
+            conn = sqlite3.connect(f"{dirname(__file__)}/PokeDB.sqlite3")
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                update Type
+                set TypeIcon = ?
+                where TypeID = ?
+                """, (blob, type_id))
+            conn.commit()
+            conn.close()
+update_type_icon()
