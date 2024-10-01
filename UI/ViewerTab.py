@@ -1,11 +1,19 @@
 from tkinter import StringVar, END, VERTICAL, NS, PhotoImage, E
-from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, OptionMenu
+from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, OptionMenu, Style
 from typing import Optional
 
 
 class ViewerTab:
     def __init__(self, frame: Frame) -> None:
         self.viewer_frame: Frame = frame
+
+        # Configure styles
+        style: Style = Style()
+        style.theme_use('clam')
+        style.configure("blue.Horizontal.TProgressbar", foreground="blue", background="blue")
+        style.configure("green.Horizontal.TProgressbar", foreground="green", background="green")
+        style.configure("yellow.Horizontal.TProgressbar", foreground="yellow", background="yellow")
+        style.configure("red.Horizontal.TProgressbar", foreground="red", background="red")
 
         # Subframes to contain controls.
         self.selector_subframe: Optional[Frame] = None
@@ -33,11 +41,12 @@ class ViewerTab:
         self.search_bar: Optional[Entry] = None
         self.selector: Optional[Treeview] = None
         self.selector_scrollbar: Optional[Scrollbar] = None
-        self.stat_labels: list = []
+        self.stat_value_labels: list = []
         self.stat_bars: list = []
 
         # List to store passed Pokémon data.
         self.selector_data: list = []
+        self.max_stats: tuple = (0, 0)
 
         # Create widgets.
         self.create_selector_subframe()
@@ -112,17 +121,22 @@ class ViewerTab:
         labels: list = ["HP", "ATK", "DEF", "SPA", "SPD", "SPE"]
 
         for i, label in enumerate(labels):
-            stat_label: Label = Label(self.stats_subframe, text=labels[i])
-            stat_label.grid(column=0, row=i)
-            self.stat_labels.append(stat_label)
+            # Stat names
+            stat_name_label: Label = Label(self.stats_subframe, text=labels[i])
+            stat_name_label.grid(column=0, row=i)
 
+            # Stat values
+            stat_value_label: Label = Label(self.stats_subframe, text=0)
+            stat_value_label.grid(column=1, row=i)
+            self.stat_value_labels.append(stat_value_label)
+
+            # Stat bars
             stat_bar: Progressbar = Progressbar(
                 self.stats_subframe,
-                style="TProgressbar",
                 length=200,
-                mode='determinate'
+                mode="determinate"
             )
-            stat_bar.grid(column=1, row=i)
+            stat_bar.grid(column=2, row=i)
             self.stat_bars.append(stat_bar)
 
         # Place Subframe.
@@ -139,8 +153,35 @@ class ViewerTab:
 
     # Set stat bar data to passed list of stats.
     def refresh_stats(self, stats: list) -> None:
+        first_quarter: int = int(self.max_stats[1]/4)
+        second_quarter: int = first_quarter * 2
+        third_quarter: int = first_quarter * 3
+
         for i, stat_bar in enumerate(self.stat_bars):
-            stat_bar["value"] = stats[i]
+            self.stat_value_labels[i].configure(text=stats[i])
+            if i == 0:
+                stat_bar.configure(
+                    value=stats[i],
+                    maximum=self.max_stats[0]
+                )
+            else:
+                stat_bar.configure(
+                    value=stats[i],
+                    maximum=self.max_stats[1]
+                )
+
+            # Update the style based on the value
+            if stats[i] < first_quarter:
+                stat_bar["style"] = "red.Horizontal.TProgressbar"
+            elif stats[i] < second_quarter:
+                stat_bar["style"] = "yellow.Horizontal.TProgressbar"
+            elif stats[i] < third_quarter:
+                stat_bar["style"] = "green.Horizontal.TProgressbar"
+            else:
+                stat_bar["style"] = "blue.Horizontal.TProgressbar"
+
+    def refresh_max_stats(self, max_stats: tuple):
+        self.max_stats = max_stats
 
     def refresh_icon(self, icon_data: bytes) -> None:
         self.icon = PhotoImage(data=icon_data)
@@ -213,6 +254,8 @@ class ViewerTab:
             for dex in dexes:
                 self.dex_selector["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
             self.dex_var.set(dexes[0])
+        else:
+            self.dex_var.set("None")
 
     # Event handlers
     def on_search_var_changed(self, *args):

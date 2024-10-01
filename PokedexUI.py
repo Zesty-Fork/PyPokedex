@@ -1,6 +1,6 @@
 # Python Libraries
 from tkinter import TclError, Tk
-from tkinter.ttk import Frame, Notebook
+from tkinter.ttk import Frame, Notebook, Style
 from typing import Optional
 
 # Local Libraries
@@ -69,12 +69,15 @@ class PokedexApp:
         type_set_id: int = self.pokedex_headers[pokemon_id][0]
         stat_set_id: int = self.pokedex_headers[pokemon_id][1]
         ability_set_id: int = self.pokedex_headers[pokemon_id][2]
+        game_id: int = self.pokedex_headers[pokemon_id][3]
 
         type_icons: tuple = self.db.get_type_icons(type_set_id)
         stats: list = self.db.get_stats(stat_set_id)
+        max_stats: tuple = self.db.get_max_stats(game_id)
         icon_data: bytes = self.db.get_pkmn_icon(pokemon_id, SHINY)
 
         self.viewer_tab.refresh_type_icons(type_icons)
+        self.viewer_tab.refresh_max_stats(max_stats)
         self.viewer_tab.refresh_stats(stats)
         self.viewer_tab.refresh_icon(icon_data)
 

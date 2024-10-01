@@ -28,7 +28,7 @@ class PokeDexDB:
         self._database: str = f"{dirname(__file__)}/PokeDB.sqlite3"
 
     def get_pokedex_headers(self, game: str, dex: str) -> dict:
-        pokedex_headers: dict = {}
+        pokedex_headers: dict = {0: [0, 0, 0, 0]}
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""
@@ -36,6 +36,7 @@ class PokeDexDB:
                 ,pd.TypeSetID
                 ,pd.StatSetID
                 ,pd.AbilitySetID
+                ,g.GameID
             from PokeDex pd
             join GameDex gd on gd.GameDexID = pd.GameDexID
             join Game g on g.GameID = gd.GameID
@@ -99,14 +100,30 @@ class PokeDexDB:
             from StatSet
             where StatSetID = ?
             """, (stat_set_id,))
-        result = cursor.fetchone()
+        stats.extend(cursor.fetchone())
         conn.close()
 
-        if result:
-            stats.extend(result)
-        else:
-            stats.extend([0, 0, 0, 0, 0, 0])
         return stats
+
+    # Return a tuple of max Pokémon stats (max HP, max other stats)
+    def get_max_stats(self, game_id: int) -> tuple:
+        conn = sqlite3.connect(self._database)
+        cursor = conn.cursor()
+        cursor.execute("""
+            select max(ss.HP) as MaxHP
+                ,max(max(ss.ATK, ss.DEF, ss.SPA, ss.SPE)) as MaxStat
+            from PokeDex as pd
+            join GameDex as gd on gd.GameDexID = pd.GameDexID
+            join StatSet as ss on ss.StatSetID = pd.StatSetID
+            where gd.GameID = ?
+            """, (game_id,))
+        max_stats: tuple = tuple(cursor.fetchone())
+        conn.close()
+
+        if max_stats == (None, None):
+            max_stats = (0, 0)
+
+        return max_stats
 
     def get_games(self) -> list:
         conn = sqlite3.connect(self._database)
@@ -253,4 +270,4 @@ def update_type_icon():
                 """, (blob, type_id))
             conn.commit()
             conn.close()
-update_type_icon()
+# update_type_icon()
