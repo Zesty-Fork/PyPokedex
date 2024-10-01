@@ -25,7 +25,6 @@ def sort_pokemon_by_name(tree, col, descending):
 
 # Focus first item of passed TreeView object
 def focus_first(tree: Treeview) -> None:
-    tree.focus_set()
     children: tuple = tree.get_children()
     if children:
         tree.focus(children[0])
@@ -318,10 +317,6 @@ class ViewerTab:
         for form in forms:
             self.form_tree.insert("", END, values=form)
         focus_first(self.form_tree)
-        self.pokemon_tree.focus()
-
-
-
 
     def refresh_games(self, games: list):
         self.game_selector["menu"].delete(0, END)
