@@ -3,6 +3,26 @@ from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, O
 from typing import Optional
 
 
+# Helper function to sort treeview by Pokédex no.
+def sort_pokemon_by_dex_no(tree, col, descending):
+    data: list = [(int(tree.set(item, col)), item) for item in tree.get_children("")]
+    data.sort(reverse=descending)
+    for index, (val, item) in enumerate(data):
+        tree.move(item, "", index)
+    tree.heading(col, command=lambda: sort_pokemon_by_dex_no(tree, col, not descending))
+    tree.heading("PokemonName", command=lambda: sort_pokemon_by_name(tree, "PokemonName", False))
+
+
+# Helper function to sort treeview by Pokémon name.
+def sort_pokemon_by_name(tree, col, descending):
+    data: list = [(tree.set(item, col), item) for item in tree.get_children("")]
+    data.sort(reverse=descending)
+    for index, (val, item) in enumerate(data):
+        tree.move(item, "", index)
+    tree.heading(col, command=lambda: sort_pokemon_by_name(tree, col, not descending))
+    tree.heading("NationalDexNo", command=lambda: sort_pokemon_by_dex_no(tree, "NationalDexNo", False))
+
+
 class ViewerTab:
     def __init__(self, frame: Frame) -> None:
         self.viewer_frame: Frame = frame
@@ -78,15 +98,26 @@ class ViewerTab:
 
         # Control configurations
         self.selector.column("NationalDexNo", width=30, minwidth=30)
-        self.selector.heading("NationalDexNo", text="#")
-        self.selector.heading("PokemonName", text="Pokemon")
+        self.selector.heading(
+            "NationalDexNo",
+            text="#",
+            command=lambda col="NationalDexNo": sort_pokemon_by_dex_no(self.selector, col, True)
+        )
+        self.selector.heading(
+            "PokemonName",
+            text="Pokemon",
+            command=lambda col="PokemonName": sort_pokemon_by_name(self.selector, col, False)
+
+        )
         self.selector.configure(yscrollcommand=self.selector_scrollbar.set)
         self.search_var.trace("w", self.on_search_var_changed)
         self.dex_var.set("Not Selected")
+        self.game_selector.configure(width=32)
+        self.dex_selector.configure(width=32)
 
         # Place controls
-        self.game_selector.grid(column=0, row=0, columnspan=2)
-        self.dex_selector.grid(column=0, row=1, columnspan=2)
+        self.game_selector.grid(column=0, row=0, columnspan=4)
+        self.dex_selector.grid(column=0, row=1, columnspan=4)
         self.search_label.grid(column=0, row=2, pady=10)
         self.search_bar.grid(column=1, row=2, pady=10, ipadx=30, columnspan=2)
         self.selector.grid(column=0, row=3, padx=10, ipady=50, columnspan=4)
@@ -153,7 +184,7 @@ class ViewerTab:
 
     # Set stat bar data to passed list of stats.
     def refresh_stats(self, stats: list) -> None:
-        first_quarter: int = int(self.max_stats[1]/4)
+        first_quarter: int = int(self.max_stats[1] / 4)
         second_quarter: int = first_quarter * 2
         third_quarter: int = first_quarter * 3
 
