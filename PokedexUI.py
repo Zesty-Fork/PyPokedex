@@ -32,7 +32,7 @@ class PokedexApp:
     def create_main_window(self):
         root = Tk()
         root.title(TITLE)
-        root.geometry("600x500")
+        root.geometry("800x500")
         root.resizable(False, False)
 
         # Remove the minimize/maximize button (Windows only)
@@ -51,7 +51,8 @@ class PokedexApp:
         self.viewer_tab = ViewerTab(self.tab1)
         # self.editor_tab: Frame = Frame(self.tab_menu)
 
-        self.viewer_tab.selector.bind("<<TreeviewSelect>>", self.on_pokemon_changed)
+        self.viewer_tab.pokemon_tree.bind("<<TreeviewSelect>>", self.on_pokemon_changed)
+        self.viewer_tab.form_tree.bind("<<TreeviewSelect>>", self.on_form_changed)
         self.viewer_tab.game_var.trace("w", self.on_game_changed)
         self.viewer_tab.dex_var.trace("w", self.on_dex_changed)
         games: list = self.db.get_games()
@@ -65,21 +66,28 @@ class PokedexApp:
 
     # Event Handlers
     def on_pokemon_changed(self, event):
+        game: str = self.viewer_tab.get_game()
+        dex: str = self.viewer_tab.get_dex()
+        national_dex_id: int = self.viewer_tab.get_national_dex_id()
+        forms: list = self.db.get_forms(game, dex, national_dex_id)
+        self.viewer_tab.refresh_form_tree(forms)
+
+    def on_form_changed(self, event):
         pokemon_id: int = self.viewer_tab.get_pokemon_id()
         type_set_id: int = self.pokedex_headers[pokemon_id][0]
         stat_set_id: int = self.pokedex_headers[pokemon_id][1]
         ability_set_id: int = self.pokedex_headers[pokemon_id][2]
         game_id: int = self.pokedex_headers[pokemon_id][3]
 
+        portrait_icon: bytes = self.db.get_pkmn_icon(pokemon_id, SHINY)
         type_icons: tuple = self.db.get_type_icons(type_set_id)
         stats: list = self.db.get_stats(stat_set_id)
         max_stats: tuple = self.db.get_max_stats(game_id)
-        icon_data: bytes = self.db.get_pkmn_icon(pokemon_id, SHINY)
 
+        self.viewer_tab.refresh_portrait_icon(portrait_icon)
         self.viewer_tab.refresh_type_icons(type_icons)
         self.viewer_tab.refresh_max_stats(max_stats)
         self.viewer_tab.refresh_stats(stats)
-        self.viewer_tab.refresh_icon(icon_data)
 
     def on_game_changed(self, *args):
         game: str = self.viewer_tab.get_game()
@@ -95,7 +103,7 @@ class PokedexApp:
         # Refresh Pokémon list
         self.pokedex_headers = self.db.get_pokedex_headers(game, dex)
         pokemon: list = self.db.get_pokemon(game, dex)
-        self.viewer_tab.refresh_pokemon(pokemon)
+        self.viewer_tab.refresh_pokemon_tree(pokemon)
 
 
 def main():

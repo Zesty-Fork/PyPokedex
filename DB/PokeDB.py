@@ -53,7 +53,7 @@ class PokeDexDB:
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
         cursor.execute("""
-            select p.PokemonID
+            select p.NationalDexID
                 ,pd.DexOrder
                 ,p.PokemonName
             from Pokemon p
@@ -68,6 +68,26 @@ class PokeDexDB:
         pokemon: list = [p for p in cursor.fetchall()]
         conn.close()
         return pokemon
+
+    # Return a list of Pokémon base forms from the National Dex
+    def get_forms(self, game: str, dex: str, national_dex_id: int) -> list:
+        conn = sqlite3.connect(self._database)
+        cursor = conn.cursor()
+        cursor.execute("""
+            select p.PokemonID
+                ,p.FormName
+            from Pokemon p
+            join PokeDex pd on pd.PokemonID = p.PokemonID
+            join GameDex gd on gd.GameDexID = pd.GameDexID
+            join Game g on g.GameID = gd.GameID
+            where g.GameName = ?
+                and gd.GameDexName = ?
+                and p.NationalDexID = ?
+            order by p.FormID
+            """, (game, dex, national_dex_id))
+        forms: list = [f for f in cursor.fetchall()]
+        conn.close()
+        return forms
 
     # Get byte data for a Pokémon's types.
     def get_type_icons(self, type_set_id: int) -> tuple:

@@ -1,5 +1,5 @@
-from tkinter import StringVar, END, VERTICAL, NS, PhotoImage, E
-from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, OptionMenu, Style
+from tkinter import StringVar, END, VERTICAL, NS, PhotoImage, EW, HORIZONTAL
+from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, OptionMenu, Style, Separator
 from typing import Optional
 
 
@@ -23,6 +23,15 @@ def sort_pokemon_by_name(tree, col, descending):
     tree.heading("NationalDexNo", command=lambda: sort_pokemon_by_dex_no(tree, "NationalDexNo", False))
 
 
+# Focus first item of passed TreeView object
+def focus_first(tree: Treeview) -> None:
+    tree.focus_set()
+    children: tuple = tree.get_children()
+    if children:
+        tree.focus(children[0])
+        tree.selection_set(children[0])
+
+
 class ViewerTab:
     def __init__(self, frame: Frame) -> None:
         self.viewer_frame: Frame = frame
@@ -39,6 +48,7 @@ class ViewerTab:
         self.selector_subframe: Optional[Frame] = None
         self.heading_subframe: Optional[Frame] = None
         self.stats_subframe: Optional[Frame] = None
+        self.forms_subframe: Optional[Frame] = None
 
         # Control headers.
         self.game_var: StringVar = StringVar()
@@ -46,23 +56,22 @@ class ViewerTab:
         self.dex_var: StringVar = StringVar()
         self.dex_selector: Optional[OptionMenu] = None
 
-        # Refresh primary type
+        self.portrait_icon: Optional[PhotoImage] = None
+        self.portrait_icon_lbl: Optional[Label] = None
         self.primary_type_icon: Optional[PhotoImage] = None
         self.primary_type_icon_lbl: Optional[Label] = None
-
-        # Refresh secondary type
         self.secondary_type_icon: Optional[PhotoImage] = None
         self.secondary_type_icon_lbl: Optional[Label] = None
 
-        self.icon: Optional[PhotoImage] = None
-        self.icon_lbl: Optional[Label] = None
         self.search_label: Optional[Label] = None
         self.search_var: StringVar = StringVar()
         self.search_bar: Optional[Entry] = None
-        self.selector: Optional[Treeview] = None
-        self.selector_scrollbar: Optional[Scrollbar] = None
+        self.pokemon_tree: Optional[Treeview] = None
+        self.pokemon_tree_scrollbar: Optional[Scrollbar] = None
         self.stat_value_labels: list = []
         self.stat_bars: list = []
+
+        self.form_tree: Optional[Treeview] = None
 
         # List to store passed Pokémon data.
         self.selector_data: list = []
@@ -70,8 +79,12 @@ class ViewerTab:
 
         # Create widgets.
         self.create_selector_subframe()
+        Separator(self.viewer_frame, orient=VERTICAL).grid(column=1, row=0, rowspan=2, sticky=NS)
         self.create_heading_subframe()
         self.create_stats_subframe()
+        self.create_forms_subframe()
+
+        # Separator(self.viewer_frame, orient=HORIZONTAL).grid(column=1, row=1, columnspan=3, sticky=EW)
 
     # Create subframe to hold Pokémon selection tree and related controls.
     def create_selector_subframe(self):
@@ -83,33 +96,33 @@ class ViewerTab:
         self.dex_selector = OptionMenu(self.selector_subframe, self.dex_var)
         self.search_label = Label(self.selector_subframe, text="Search:")
         self.search_bar = Entry(self.selector_subframe, textvariable=self.search_var)
-        self.selector: Treeview = Treeview(
+        self.pokemon_tree = Treeview(
             self.selector_subframe,
             columns=["PokemonID", "NationalDexNo", "PokemonName"],
             displaycolumns=["NationalDexNo", "PokemonName"],
             show="headings",
 
         )
-        self.selector_scrollbar: Scrollbar = Scrollbar(
+        self.pokemon_tree_scrollbar: Scrollbar = Scrollbar(
             self.selector_subframe,
             orient=VERTICAL,
-            command=self.selector.yview
+            command=self.pokemon_tree.yview
         )
 
         # Control configurations
-        self.selector.column("NationalDexNo", width=30, minwidth=30)
-        self.selector.heading(
+        self.pokemon_tree.column("NationalDexNo", width=30, minwidth=30)
+        self.pokemon_tree.heading(
             "NationalDexNo",
             text="#",
-            command=lambda col="NationalDexNo": sort_pokemon_by_dex_no(self.selector, col, True)
+            command=lambda col="NationalDexNo": sort_pokemon_by_dex_no(self.pokemon_tree, col, True)
         )
-        self.selector.heading(
+        self.pokemon_tree.heading(
             "PokemonName",
             text="Pokemon",
-            command=lambda col="PokemonName": sort_pokemon_by_name(self.selector, col, False)
+            command=lambda col="PokemonName": sort_pokemon_by_name(self.pokemon_tree, col, False)
 
         )
-        self.selector.configure(yscrollcommand=self.selector_scrollbar.set)
+        self.pokemon_tree.configure(yscrollcommand=self.pokemon_tree_scrollbar.set)
         self.search_var.trace("w", self.on_search_var_changed)
         self.dex_var.set("Not Selected")
         self.game_selector.configure(width=32)
@@ -120,8 +133,8 @@ class ViewerTab:
         self.dex_selector.grid(column=0, row=1, columnspan=4)
         self.search_label.grid(column=0, row=2, pady=10)
         self.search_bar.grid(column=1, row=2, pady=10, ipadx=30, columnspan=2)
-        self.selector.grid(column=0, row=3, padx=10, ipady=50, columnspan=4)
-        self.selector_scrollbar.grid(column=4, row=3, sticky=NS)
+        self.pokemon_tree.grid(column=0, row=3, padx=10, ipady=50, columnspan=4)
+        self.pokemon_tree_scrollbar.grid(column=4, row=3, sticky=NS)
 
         # Place Subframe
         self.selector_subframe.grid(column=0, row=0, rowspan=2)
@@ -131,17 +144,17 @@ class ViewerTab:
         self.heading_subframe = Frame(self.viewer_frame)
 
         # Control declarations/placement.
-        self.icon_lbl = Label(self.heading_subframe)
+        self.portrait_icon_lbl = Label(self.heading_subframe)
         self.primary_type_icon_lbl = Label(self.heading_subframe)
         self.secondary_type_icon_lbl = Label(self.heading_subframe)
 
         # Place Controls.
-        self.icon_lbl.grid(column=0, row=0, columnspan=2)
+        self.portrait_icon_lbl.grid(column=0, row=0, columnspan=2)
         self.primary_type_icon_lbl.grid(column=0, row=1)
         self.secondary_type_icon_lbl.grid(column=1, row=1)
 
         # Place Subframe.
-        self.heading_subframe.grid(column=1, row=0, sticky="n")
+        self.heading_subframe.grid(column=2, row=0, pady=5, padx=10, sticky="n")
 
     # Create subframe to hold stat-related UI elements.
     def create_stats_subframe(self):
@@ -153,11 +166,11 @@ class ViewerTab:
 
         for i, label in enumerate(labels):
             # Stat names
-            stat_name_label: Label = Label(self.stats_subframe, text=labels[i])
+            stat_name_label: Label = Label(self.stats_subframe, text=labels[i], width=5)
             stat_name_label.grid(column=0, row=i)
 
             # Stat values
-            stat_value_label: Label = Label(self.stats_subframe, text=0)
+            stat_value_label: Label = Label(self.stats_subframe, text=0, width=5)
             stat_value_label.grid(column=1, row=i)
             self.stat_value_labels.append(stat_value_label)
 
@@ -167,11 +180,33 @@ class ViewerTab:
                 length=200,
                 mode="determinate"
             )
-            stat_bar.grid(column=2, row=i)
+            stat_bar.grid(column=2, row=i, pady=3, padx=(0, 10))
             self.stat_bars.append(stat_bar)
 
         # Place Subframe.
-        self.stats_subframe.grid(column=1, row=1)
+        self.stats_subframe.grid(column=3, row=0, pady=10, sticky="n")
+
+    def create_forms_subframe(self):
+        # Subframe to contain controls.
+        self.forms_subframe = Frame(self.viewer_frame)
+
+        # Control declarations
+        self.form_tree = Treeview(
+            self.forms_subframe,
+            columns=["PokemonID", "FormName"],
+            displaycolumns=["FormName"],
+            show="headings"
+        )
+
+        # Control configurations
+        self.form_tree.column("FormName", width=100)
+        self.form_tree.heading("FormName", text="Form")
+
+        # Place Controls.
+        self.form_tree.grid(column=0, row=0)
+
+        # Place Subframe.
+        self.forms_subframe.grid(column=2, row=1)
 
     def refresh_type_icons(self, type_icons: tuple):
         # Refresh primary type
@@ -214,31 +249,33 @@ class ViewerTab:
     def refresh_max_stats(self, max_stats: tuple):
         self.max_stats = max_stats
 
-    def refresh_icon(self, icon_data: bytes) -> None:
-        self.icon = PhotoImage(data=icon_data)
-        self.icon_lbl.config(image=self.icon)
-
-    def focus_first(self) -> None:
-        self.selector.focus_set()
-        children: tuple = self.selector.get_children()
-        if children:
-            self.selector.focus(children[0])
-            self.selector.selection_set(children[0])
+    def refresh_portrait_icon(self, icon_data: bytes) -> None:
+        self.portrait_icon = PhotoImage(data=icon_data)
+        self.portrait_icon_lbl.config(image=self.portrait_icon)
 
     # Search Pokémon in selector by either name or dex number.
-    def search_pokemon(self, term: str):
-        self.selector.delete(*self.selector.get_children())
+    def search_pokemon_tree(self, term: str):
+        self.pokemon_tree.delete(*self.pokemon_tree.get_children())
         for values in self.selector_data:
             if term in values[2].lower() or term == str(values[1]):
-                self.selector.insert("", END, values=values)
-        self.focus_first()
+                self.pokemon_tree.insert("", END, values=values)
+        focus_first(self.pokemon_tree)
         self.search_bar.focus_set()
+
+    # Returns national dex ID of current selection.
+    def get_national_dex_id(self) -> int:
+        pokemon: str = self.pokemon_tree.focus()
+        if pokemon:
+            national_dex_id: int = self.pokemon_tree.item(pokemon)["values"][0]
+        else:
+            national_dex_id: int = 0
+        return national_dex_id
 
     # Returns Pokémon ID of current selection.
     def get_pokemon_id(self) -> int:
-        pokemon: str = self.selector.focus()
+        pokemon: str = self.form_tree.focus()
         if pokemon:
-            pokemon_id: int = self.selector.item(pokemon)["values"][0]
+            pokemon_id: int = self.form_tree.item(pokemon)["values"][0]
         else:
             pokemon_id: int = 0
         return pokemon_id
@@ -257,20 +294,34 @@ class ViewerTab:
             dex += "Kanto Pokedex"
         return dex
 
-    # Flushes selector values, and replaces them with the passed Pokémon data.
-    def refresh_pokemon(self, pokemon: list) -> None:
+    # Flushes Pokémon values, and replaces them with the passed Pokémon data.
+    def refresh_pokemon_tree(self, pokemon: list) -> None:
         # Store passed data
         self.selector_data = pokemon
 
         # Delete items from tree
-        self.selector.delete(*self.selector.get_children())
+        self.pokemon_tree.delete(*self.pokemon_tree.get_children())
 
         # Populate Tree
         for values in self.selector_data:
-            self.selector.insert("", END, values=values)
+            self.pokemon_tree.insert("", END, values=values)
 
         self.on_search_var_changed()
-        self.focus_first()
+        focus_first(self.pokemon_tree)
+
+    # Flushes form values, and replaces them with the passed Pokémon form data.
+    def refresh_form_tree(self, forms: list) -> None:
+        # Delete items from tree
+        self.form_tree.delete(*self.form_tree.get_children())
+
+        # Populate Tree
+        for form in forms:
+            self.form_tree.insert("", END, values=form)
+        focus_first(self.form_tree)
+        self.pokemon_tree.focus()
+
+
+
 
     def refresh_games(self, games: list):
         self.game_selector["menu"].delete(0, END)
@@ -291,4 +342,4 @@ class ViewerTab:
     # Event handlers
     def on_search_var_changed(self, *args):
         term: str = self.search_var.get().lower()
-        self.search_pokemon(term)
+        self.search_pokemon_tree(term)
