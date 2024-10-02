@@ -1,13 +1,3 @@
-"""
-SELECT max(ss.HP) as  MaxHP
-,max(max(ss.ATK, ss.DEF, ss.SPA, ss.SPE)) as  MaxStat
-FROM Pokemon as p
-JOIN PokeDex as pd on pd.PokemonID = p.PokemonID
-JOIN GameDex as gd on gd.GameDexID = pd.GameDexID
-JOIN StatSet as ss on ss.StatSetID = pd.StatSetID
-WHERE gd.GameDexID = 25
-"""
-import os
 # Handles database operations
 
 # Python Libraries
@@ -145,6 +135,7 @@ class PokeDexDB:
 
         return max_stats
 
+    # Return a list of all games in the database.
     def get_games(self) -> list:
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
@@ -157,6 +148,7 @@ class PokeDexDB:
         conn.close()
         return games
 
+    # Return a list of Pokedex names for a specific game.
     def get_dexes(self, game: str) -> list:
         conn = sqlite3.connect(self._database)
         cursor = conn.cursor()
@@ -275,19 +267,19 @@ class PokeDexDB:
 
 
 # Update byte data for a Pokémon's normal appearance
-def update_type_icon():
-    path = "C:/Users/NathanJones/Downloads"
-    for file in os.listdir(path):
-        if file.endswith(".png"):
-            blob = image_to_blob(f"{path}/{file}")
-            type_id = int(file.split(".")[0])
-            conn = sqlite3.connect(f"{dirname(__file__)}/PokeDB.sqlite3")
-            cursor = conn.cursor()
-            cursor.execute(f"""
-                update Type
-                set TypeIcon = ?
-                where TypeID = ?
-                """, (blob, type_id))
-            conn.commit()
-            conn.close()
+#def update_type_icon():
+#    path = "C:/Users/NathanJones/Downloads"
+#    for file in os.listdir(path):
+#        if file.endswith(".png"):
+#            blob = image_to_blob(f"{path}/{file}")
+#            type_id = int(file.split(".")[0])
+#            conn = sqlite3.connect(f"{dirname(__file__)}/PokeDB.sqlite3")
+#            cursor = conn.cursor()
+#            cursor.execute(f"""
+#                update Type
+#                set TypeIcon = ?
+#                where TypeID = ?
+#                """, (blob, type_id))
+#            conn.commit()
+#            conn.close()
 # update_type_icon()

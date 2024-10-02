@@ -8,7 +8,7 @@ from DB.PokeDB import PokeDexDB
 from UI.ViewerTab import ViewerTab
 
 # Global Declarations
-TITLE: str = "Pokedex"
+TITLE: str = "PyPokedex"
 VERSION: str = "1.0.0"  # TODO move to attributes file of some kind
 SHINY: bool = False
 
@@ -29,7 +29,7 @@ class PokedexApp:
         # Start application
         self.create_main_window()
 
-    def create_main_window(self):
+    def create_main_window(self) -> None:
         root = Tk()
         root.title(TITLE)
         root.geometry("800x500")
