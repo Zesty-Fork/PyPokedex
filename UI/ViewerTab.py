@@ -1,10 +1,10 @@
-from tkinter import StringVar, END, VERTICAL, PhotoImage, LEFT, TOP, X, Y, BOTH, IntVar, HORIZONTAL, Text
+from tkinter import StringVar, END, VERTICAL, PhotoImage, LEFT, TOP, X, Y, BOTH, IntVar, HORIZONTAL
 from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, OptionMenu, Style, Separator, Checkbutton
 from typing import Optional
 
 
 # Helper function to sort treeview by Pokédex no.
-def sort_pokemon_by_dex_no(tree, col, descending):
+def sort_pokemon_by_dex_no(tree, col, descending) -> None:
     data: list = [(int(tree.set(item, col)), item) for item in tree.get_children("")]
     data.sort(reverse=descending)
     for index, (val, item) in enumerate(data):
@@ -14,7 +14,7 @@ def sort_pokemon_by_dex_no(tree, col, descending):
 
 
 # Helper function to sort treeview by Pokémon name.
-def sort_pokemon_by_name(tree, col, descending):
+def sort_pokemon_by_name(tree, col, descending) -> None:
     data: list = [(tree.set(item, col), item) for item in tree.get_children("")]
     data.sort(reverse=descending)
     for index, (val, item) in enumerate(data):
@@ -102,7 +102,7 @@ class ViewerTab:
         self.create_data_subframe()
 
     # Create subframe to hold Pokémon selection tree and related controls.
-    def create_selection_subframe(self):
+    def create_selection_subframe(self) -> None:
         # Subframe to contain controls
         self.selection_subframe = Frame(self.viewer_frame)
         self.pokemon_tree_group = Frame(self.selection_subframe)
@@ -169,7 +169,7 @@ class ViewerTab:
         # Place Subframe
         self.selection_subframe.pack(side=LEFT, fill=Y)
 
-    def create_data_subframe(self):
+    def create_data_subframe(self) -> None:
         # Subframe to contain controls.
         self.data_subframe = Frame(self.viewer_frame)
         self.portrait_group = Frame(self.data_subframe)
@@ -237,7 +237,59 @@ class ViewerTab:
         # Place Subframe.
         self.data_subframe.pack(side=TOP)
 
-    def refresh_type_icons(self, type_icons: tuple):
+    # Refresh self.game_selector data with passed list.
+    def refresh_games(self, games: list) -> None:
+        self.game_selector["menu"].delete(0, END)
+        if games:
+            for game in games:
+                self.game_selector["menu"].add_command(label=game, command=lambda g=game: self.game_var.set(g))
+            self.game_var.set(games[0])
+
+    # Refresh self.dex_selector data with passed list.
+    def refresh_dexes(self, dexes: list) -> None:
+        self.dex_selector["menu"].delete(0, END)
+        if dexes:
+            for dex in dexes:
+                self.dex_selector["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
+            self.dex_var.set(dexes[0])
+        else:
+            self.dex_var.set("None")
+
+    # Flushes Pokémon values, and replaces them with the passed Pokémon data.
+    def refresh_pokemon_tree(self, pokemon: list) -> None:
+        # Store passed data
+        self.selector_data = pokemon
+
+        # Delete items from tree
+        self.pokemon_tree.delete(*self.pokemon_tree.get_children())
+
+        # Populate Tree
+        for values in self.selector_data:
+            self.pokemon_tree.insert("", END, values=values)
+
+        self.on_search_var_changed()
+        focus_first(self.pokemon_tree)
+
+    # Flushes form values, and replaces them with the passed Pokémon form data.
+    def refresh_form_tree(self, forms: list) -> None:
+        # Delete items from tree
+        self.form_tree.delete(*self.form_tree.get_children())
+
+        # Populate Tree
+        for form in forms:
+            if form[1]:
+                self.form_tree.insert("", END, values=form)
+            else:
+                self.form_tree.insert("", END, values=(form[0], "Default"))
+        focus_first(self.form_tree)
+
+    # Set portrait icon from passed binary data.
+    def refresh_portrait_icon(self, icon_data: bytes) -> None:
+        self.portrait_icon = PhotoImage(data=icon_data)
+        self.portrait_icon_lbl.config(image=self.portrait_icon)
+
+    # Set type icons from passed tuple of binary data.
+    def refresh_type_icons(self, type_icons: tuple) -> None:
         # Refresh primary type
         self.primary_type_icon = PhotoImage(data=type_icons[0])
         self.primary_type_icon_lbl.config(image=self.primary_type_icon)
@@ -277,10 +329,6 @@ class ViewerTab:
 
     def refresh_max_stats(self, max_stats: tuple) -> None:
         self.max_stats = max_stats
-
-    def refresh_portrait_icon(self, icon_data: bytes) -> None:
-        self.portrait_icon = PhotoImage(data=icon_data)
-        self.portrait_icon_lbl.config(image=self.portrait_icon)
 
     def refresh_abilities(self, abilities: tuple) -> None:
         self.primary_ability.configure(text=abilities[0])
@@ -327,62 +375,18 @@ class ViewerTab:
             dex += "Kanto Pokedex"
         return dex
 
-    # Flushes Pokémon values, and replaces them with the passed Pokémon data.
-    def refresh_pokemon_tree(self, pokemon: list) -> None:
-        # Store passed data
-        self.selector_data = pokemon
-
-        # Delete items from tree
-        self.pokemon_tree.delete(*self.pokemon_tree.get_children())
-
-        # Populate Tree
-        for values in self.selector_data:
-            self.pokemon_tree.insert("", END, values=values)
-
-        self.on_search_var_changed()
-        focus_first(self.pokemon_tree)
-
-    # Flushes form values, and replaces them with the passed Pokémon form data.
-    def refresh_form_tree(self, forms: list) -> None:
-        # Delete items from tree
-        self.form_tree.delete(*self.form_tree.get_children())
-
-        # Populate Tree
-        for form in forms:
-            if form[1]:
-                self.form_tree.insert("", END, values=form)
-            else:
-                self.form_tree.insert("", END, values=(form[0], "Default"))
-        focus_first(self.form_tree)
-
-    def refresh_games(self, games: list):
-        self.game_selector["menu"].delete(0, END)
-        if games:
-            for game in games:
-                self.game_selector["menu"].add_command(label=game, command=lambda g=game: self.game_var.set(g))
-            self.game_var.set(games[0])
-
-    def refresh_dexes(self, dexes: list):
-        self.dex_selector["menu"].delete(0, END)
-        if dexes:
-            for dex in dexes:
-                self.dex_selector["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
-            self.dex_var.set(dexes[0])
-        else:
-            self.dex_var.set("None")
-
     # Event handlers
-    def on_search_var_changed(self, *args):
+    def on_search_var_changed(self, *args) -> None:
         term: str = self.search_var.get().lower()
         if term != "search...":
             self.search_pokemon_tree(term)
 
-    def on_search_bar_focus_in(self, event):
+    def on_search_bar_focus_in(self, event) -> None:
         if self.search_bar.get() == "Search...":
             self.search_bar.delete(0, END)
             self.search_bar.config(foreground="black")
 
-    def on_search_bar_focus_out(self, event):
+    def on_search_bar_focus_out(self, event) -> None:
         if self.search_bar.get() == "":
             self.search_bar.insert(0, "Search...")
             self.search_bar.config(foreground="gray")

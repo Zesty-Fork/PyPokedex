@@ -1,22 +1,21 @@
 # Python Libraries
 from tkinter import TclError, Tk
-from tkinter.ttk import Frame, Notebook, Style
+from tkinter.ttk import Frame, Notebook
 from typing import Optional
 
 # Local Libraries
-from DB.PokeDB import PokeDexDB
+from DB.PokedexDB import PokedexDB
 from UI.ViewerTab import ViewerTab
 
 # Global Declarations
-TITLE: str = "PyPokedex"
+TITLE: str = "PyPokédex"
 VERSION: str = "1.0.0"  # TODO move to attributes file of some kind
-SHINY: bool = False
 
 
 class PokedexApp:
     def __init__(self):
         # Database
-        self.db: PokeDexDB = PokeDexDB()
+        self.db: PokedexDB = PokedexDB()
 
         self.tab_menu: Optional[Notebook] = None
         self.tab1: Optional[Frame] = None
@@ -24,7 +23,7 @@ class PokedexApp:
         self.viewer_tab: Optional[ViewerTab] = None
 
         #
-        self.pokedex_headers: dict = {}
+        self.Pokedex_headers: dict = {}
 
         # Start application
         self.create_main_window()
@@ -45,8 +44,8 @@ class PokedexApp:
         self.tab1: Frame = Frame(self.tab_menu)
         self.tab2: Frame = Frame(self.tab_menu)
 
-        self.tab_menu.add(self.tab1, text="Pokedex Viewer")
-        self.tab_menu.add(self.tab2, text="Pokedex Editor")
+        self.tab_menu.add(self.tab1, text="Pokédex Viewer")
+        self.tab_menu.add(self.tab2, text="Pokédex Editor")
 
         self.viewer_tab = ViewerTab(self.tab1)
         # self.editor_tab: Frame = Frame(self.tab_menu)
@@ -66,22 +65,22 @@ class PokedexApp:
         root.mainloop()
 
     # Event Handlers
-    def on_pokemon_changed(self, event):
+    def on_pokemon_changed(self, event) -> None:
         game: str = self.viewer_tab.get_game()
         dex: str = self.viewer_tab.get_dex()
         national_dex_id: int = self.viewer_tab.get_national_dex_id()
         forms: list = self.db.get_forms(game, dex, national_dex_id)
         self.viewer_tab.refresh_form_tree(forms)
 
-    def on_form_changed(self, event):
+    def on_form_changed(self, event) -> None:
         pokemon_id: int = self.viewer_tab.get_pokemon_id()
         shiny: bool = bool(self.viewer_tab.shiny.get())
-        type_set_id: int = self.pokedex_headers[pokemon_id][0]
-        stat_set_id: int = self.pokedex_headers[pokemon_id][1]
-        ability_set_id: int = self.pokedex_headers[pokemon_id][2]
-        game_id: int = self.pokedex_headers[pokemon_id][3]
+        type_set_id: int = self.Pokedex_headers[pokemon_id][0]
+        stat_set_id: int = self.Pokedex_headers[pokemon_id][1]
+        ability_set_id: int = self.Pokedex_headers[pokemon_id][2]
+        game_id: int = self.Pokedex_headers[pokemon_id][3]
 
-        portrait_icon: bytes = self.db.get_pkmn_icon(pokemon_id, shiny)
+        portrait_icon: bytes = self.db.get_portrait_icon(pokemon_id, shiny)
         type_icons: tuple = self.db.get_type_icons(type_set_id)
         stats: list = self.db.get_stats(stat_set_id)
         max_stats: tuple = self.db.get_max_stats(game_id)
@@ -93,31 +92,30 @@ class PokedexApp:
         self.viewer_tab.refresh_stats(stats)
         self.viewer_tab.refresh_abilities(abilities)
 
-    def on_game_changed(self, *args):
+    def on_game_changed(self, *args) -> None:
         game: str = self.viewer_tab.get_game()
 
         # Refresh dex data
         dexes: list = self.db.get_dexes(game)
         self.viewer_tab.refresh_dexes(dexes)
 
-    def on_dex_changed(self, *args):
+    def on_dex_changed(self, *args) -> None:
         game: str = self.viewer_tab.get_game()
         dex: str = self.viewer_tab.get_dex()
 
         # Refresh Pokémon list
-        self.pokedex_headers = self.db.get_pokedex_headers(game, dex)
+        self.Pokedex_headers = self.db.get_pokedex_headers(game, dex)
         pokemon: list = self.db.get_pokemon(game, dex)
         self.viewer_tab.refresh_pokemon_tree(pokemon)
 
-    def on_shiny_changed(self, *args):
+    def on_shiny_changed(self, *args) -> None:
         pokemon_id: int = self.viewer_tab.get_pokemon_id()
         shiny: bool = bool(self.viewer_tab.shiny.get())
-        portrait_icon: bytes = self.db.get_pkmn_icon(pokemon_id, shiny)
+        portrait_icon: bytes = self.db.get_portrait_icon(pokemon_id, shiny)
         self.viewer_tab.refresh_portrait_icon(portrait_icon)
 
 
-
-def main():
+def main() -> None:
     app = PokedexApp()
 
 
