@@ -32,7 +32,7 @@ class PokedexApp:
     def create_main_window(self) -> None:
         root = Tk()
         root.title(TITLE)
-        root.geometry("800x550")
+        root.geometry("800x580")
         root.resizable(False, False)
 
         # Remove the minimize/maximize button (Windows only)
@@ -85,11 +85,13 @@ class PokedexApp:
         type_icons: tuple = self.db.get_type_icons(type_set_id)
         stats: list = self.db.get_stats(stat_set_id)
         max_stats: tuple = self.db.get_max_stats(game_id)
+        abilities: tuple = self.db.get_abilities(ability_set_id)
 
         self.viewer_tab.refresh_portrait_icon(portrait_icon)
         self.viewer_tab.refresh_type_icons(type_icons)
         self.viewer_tab.refresh_max_stats(max_stats)
         self.viewer_tab.refresh_stats(stats)
+        self.viewer_tab.refresh_abilities(abilities)
 
     def on_game_changed(self, *args):
         game: str = self.viewer_tab.get_game()

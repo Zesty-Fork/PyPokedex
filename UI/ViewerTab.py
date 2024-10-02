@@ -1,4 +1,4 @@
-from tkinter import StringVar, END, VERTICAL, PhotoImage, LEFT, TOP, X, Y, BOTH, IntVar
+from tkinter import StringVar, END, VERTICAL, PhotoImage, LEFT, TOP, X, Y, BOTH, IntVar, HORIZONTAL, Text
 from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, OptionMenu, Style, Separator, Checkbutton
 from typing import Optional
 
@@ -43,13 +43,21 @@ class ViewerTab:
         style.configure("green.Horizontal.TProgressbar", foreground="green", background="green")
         style.configure("yellow.Horizontal.TProgressbar", foreground="yellow", background="yellow")
         style.configure("red.Horizontal.TProgressbar", foreground="red", background="red")
+        style.configure("Ability.TLabel", borderwidth=1, relief="solid", padding=5, foreground="black")
+        style.configure("HiddenAbility.TLabel", borderwidth=1, relief="solid", padding=5, foreground="gray")
 
         # Subframes to contain controls.
         self.selection_subframe: Optional[Frame] = None
-        self.profile_subframe: Optional[Frame] = None
-        self.stats_subframe: Optional[Frame] = None
+        self.data_subframe: Optional[Frame] = None
 
-        # Control headers.
+        # Groups to organize subframes
+        self.pokemon_tree_group: Optional[Frame] = None
+        self.portrait_group: Optional[Frame] = None
+        self.type_group: Optional[Frame] = None
+        self.stats_group: Optional[Frame] = None
+        self.ability_group: Optional[Frame] = None
+
+        # Control headers (Selection Subframe)
         self.game_var: StringVar = StringVar()
         self.game_selector: Optional[OptionMenu] = None
         self.dex_var: StringVar = StringVar()
@@ -58,18 +66,31 @@ class ViewerTab:
         self.search_bar: Optional[Entry] = None
         self.pokemon_tree: Optional[Treeview] = None
         self.pokemon_tree_scrollbar: Optional[Scrollbar] = None
-        self.stat_value_labels: list = []
-        self.stat_bars: list = []
-
-        self.shiny: IntVar = IntVar()
-        self.shiny_chk: Optional[Checkbutton] = None
         self.form_tree: Optional[Treeview] = None
+
+        # Control headers (Data Subframe [Portrait Group])
         self.portrait_icon: Optional[PhotoImage] = None
         self.portrait_icon_lbl: Optional[Label] = None
+        self.shiny: IntVar = IntVar()
+        self.shiny_check: Optional[Checkbutton] = None
+
+        # Control headers (Data Subframe [Type Group])
         self.primary_type_icon: Optional[PhotoImage] = None
         self.primary_type_icon_lbl: Optional[Label] = None
         self.secondary_type_icon: Optional[PhotoImage] = None
         self.secondary_type_icon_lbl: Optional[Label] = None
+
+        # Control headers (Data Subframe [Stats Group])
+        self.stat_value_labels: list = []
+        self.stat_bars: list = []
+
+        # Control headers (Data Subframe [Ability Group])
+        self.primary_ability_lbl: Optional[Label] = None
+        self.secondary_ability_lbl: Optional[Label] = None
+        self.hidden_ability_lbl: Optional[Label] = None
+        self.primary_ability: Optional[Label] = None
+        self.secondary_ability: Optional[Label] = None
+        self.hidden_ability: Optional[Label] = None
 
         # List to store passed Pokémon data.
         self.selector_data: list = []
@@ -77,24 +98,21 @@ class ViewerTab:
 
         # Create widgets.
         self.create_selection_subframe()
-        # Separator(self.viewer_frame, orient=VERTICAL).pack()
-        self.create_profile_subframe()
-        self.create_stats_subframe()
-
-        # Separator(self.viewer_frame, orient=HORIZONTAL).grid(column=1, row=1, columnspan=3, sticky=EW)
+        Separator(self.viewer_frame, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
+        self.create_data_subframe()
 
     # Create subframe to hold Pokémon selection tree and related controls.
     def create_selection_subframe(self):
         # Subframe to contain controls
         self.selection_subframe = Frame(self.viewer_frame)
-        self.pokemon_tree_grp = Frame(self.selection_subframe)
+        self.pokemon_tree_group = Frame(self.selection_subframe)
 
         # Control declarations
         self.game_selector = OptionMenu(self.selection_subframe, self.game_var)
         self.dex_selector = OptionMenu(self.selection_subframe, self.dex_var)
         self.search_bar = Entry(self.selection_subframe, textvariable=self.search_var, foreground="gray")
         self.pokemon_tree = Treeview(
-            self.pokemon_tree_grp,
+            self.pokemon_tree_group,
             columns=["PokemonID", "NationalDexNo", "PokemonName"],
             displaycolumns=["NationalDexNo", "PokemonName"],
             show="headings",
@@ -102,7 +120,7 @@ class ViewerTab:
 
         )
         self.pokemon_tree_scrollbar: Scrollbar = Scrollbar(
-            self.pokemon_tree_grp,
+            self.pokemon_tree_group,
             orient=VERTICAL,
             command=self.pokemon_tree.yview
         )
@@ -137,71 +155,87 @@ class ViewerTab:
         self.form_tree.heading("FormName", text="Form")
 
         # Place controls
+        Separator(self.selection_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
         self.game_selector.pack(side=TOP, fill=X)
         self.dex_selector.pack(side=TOP, fill=X)
+        Separator(self.selection_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
         self.search_bar.pack(side=TOP, fill=X)
         self.pokemon_tree.pack(side=LEFT, fill=BOTH)
         self.pokemon_tree_scrollbar.pack(side=LEFT, fill=Y)
-        self.pokemon_tree_grp.pack(side=TOP, fill=X)
+        self.pokemon_tree_group.pack(side=TOP, fill=X)
+        Separator(self.selection_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
         self.form_tree.pack(side=TOP, fill=X)
 
         # Place Subframe
         self.selection_subframe.pack(side=LEFT, fill=Y)
 
-    def create_profile_subframe(self):
+    def create_data_subframe(self):
         # Subframe to contain controls.
-        self.profile_subframe = Frame(self.viewer_frame)
-        self.form_group = Frame(self.profile_subframe)
-        self.type_group = Frame(self.profile_subframe)
+        self.data_subframe = Frame(self.viewer_frame)
+        self.portrait_group = Frame(self.data_subframe)
+        self.type_group = Frame(self.data_subframe)
+        self.stats_group = Frame(self.data_subframe)
+        self.ability_group = Frame(self.data_subframe)
 
-        # Control declarations
-        self.shiny_chk = Checkbutton(self.form_group, text="Shiny", variable=self.shiny)
-        self.portrait_icon_lbl = Label(self.profile_subframe)
+        # Control declarations (Portrait Group)
+        self.portrait_icon_lbl = Label(self.portrait_group)
+        self.shiny_check = Checkbutton(self.portrait_group, text="Shiny", variable=self.shiny)
+        self.portrait_icon_lbl.grid(column=0, row=0)
+        self.shiny_check.grid(column=0, row=1)
+
+        # Control declarations (Type Group)
         self.primary_type_icon_lbl = Label(self.type_group)
-        self.secondary_type_icon_lbl = Label(self.type_group)
-
-        # Place controls
-        self.shiny_chk.grid(column=0, row=0)
-        self.form_group.pack(side=LEFT, fill=Y, expand=True)
-
-        self.portrait_icon_lbl.pack(side=LEFT, fill=Y, expand=True)
-
         self.primary_type_icon_lbl.grid(column=0, row=0)
-        self.secondary_type_icon_lbl.grid(column=0, row=1)
-        self.type_group.pack(side=LEFT, fill=Y, expand=True)
+        self.secondary_type_icon_lbl = Label(self.type_group)
+        self.secondary_type_icon_lbl.grid(column=1, row=0)
 
-        # Place Subframe.
-        self.profile_subframe.pack(side=TOP)
-
-    # Create subframe to hold stat-related UI elements.
-    def create_stats_subframe(self):
-        # Subframe to contain controls.
-        self.stats_subframe = Frame(self.viewer_frame)
-
-        # Control declarations/placement.
+        # Control declarations (Stats Group)
         labels: list = ["HP", "ATK", "DEF", "SPA", "SPD", "SPE"]
-
         for i, label in enumerate(labels):
             # Stat names
-            stat_name_label: Label = Label(self.stats_subframe, text=labels[i], width=5)
+            stat_name_label: Label = Label(self.stats_group, text=labels[i], width=5)
             stat_name_label.grid(column=0, row=i)
 
             # Stat values
-            stat_value_label: Label = Label(self.stats_subframe, text=0, width=5)
+            stat_value_label: Label = Label(self.stats_group, text=0, width=5)
             stat_value_label.grid(column=1, row=i)
             self.stat_value_labels.append(stat_value_label)
 
             # Stat bars
             stat_bar: Progressbar = Progressbar(
-                self.stats_subframe,
+                self.stats_group,
                 length=200,
                 mode="determinate"
             )
             stat_bar.grid(column=4, row=i, pady=2, padx=(0, 10))
             self.stat_bars.append(stat_bar)
 
+        # Control declarations (Ability Group)
+        self.primary_ability_lbl = Label(self.ability_group, width=10, text="Ability 1")
+        self.secondary_ability_lbl = Label(self.ability_group, width=10, text="Ability 2")
+        self.hidden_ability_lbl = Label(self.ability_group, width=10, text="Hidden", foreground="gray")
+        self.primary_ability = Label(self.ability_group, style="Ability.TLabel", width=32)
+        self.secondary_ability = Label(self.ability_group, style="Ability.TLabel", width=32)
+        self.hidden_ability = Label(self.ability_group, style="HiddenAbility.TLabel", width=32)
+        self.primary_ability_lbl.grid(column=0, row=0, pady=10)
+        self.secondary_ability_lbl.grid(column=0, row=1, pady=10)
+        self.hidden_ability_lbl.grid(column=0, row=2, pady=10)
+        self.primary_ability.grid(column=1, row=0, pady=10, padx=5)
+        self.secondary_ability.grid(column=1, row=1, pady=10, padx=5)
+        self.hidden_ability.grid(column=1, row=2, pady=10, padx=5)
+
+        # Place controls
+        Separator(self.data_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
+        self.portrait_group.pack(side=TOP)
+        Separator(self.data_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
+        self.type_group.pack(side=TOP)
+        Separator(self.data_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
+        self.stats_group.pack(side=TOP)
+        Separator(self.data_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
+        self.ability_group.pack(side=TOP)
+
         # Place Subframe.
-        self.stats_subframe.pack(side=TOP)
+        self.data_subframe.pack(side=TOP)
 
     def refresh_type_icons(self, type_icons: tuple):
         # Refresh primary type
@@ -247,6 +281,11 @@ class ViewerTab:
     def refresh_portrait_icon(self, icon_data: bytes) -> None:
         self.portrait_icon = PhotoImage(data=icon_data)
         self.portrait_icon_lbl.config(image=self.portrait_icon)
+
+    def refresh_abilities(self, abilities: tuple) -> None:
+        self.primary_ability.configure(text=abilities[0])
+        self.secondary_ability.configure(text=abilities[1])
+        self.hidden_ability.configure(text=abilities[2])
 
     # Search Pokémon in selector by either name or dex number.
     def search_pokemon_tree(self, term: str) -> None:

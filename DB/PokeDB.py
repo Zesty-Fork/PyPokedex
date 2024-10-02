@@ -135,6 +135,24 @@ class PokeDexDB:
 
         return max_stats
 
+    def get_abilities(self, ability_set_id: int) -> tuple:
+        conn = sqlite3.connect(self._database)
+        cursor = conn.cursor()
+        cursor.execute("""
+            select ifnull(a1.AbilityName, 'N/A') as PrimaryAbility
+                ,ifnull(a2.AbilityName, 'N/A') as SecondaryAbility
+                ,ifnull(a3.AbilityName, 'N/A') as HiddenAbility
+            from AbilitySet abs
+            join Ability a1 on a1.AbilityID = abs.PrimaryAbilityID
+            join Ability a2 on a2.AbilityID = abs.SecondaryAbilityID
+            join Ability a3 on a3.AbilityID = abs.HiddenAbilityID
+            where abs.AbilitySetID = ?
+            """, (ability_set_id,))
+        abilities: tuple = tuple(cursor.fetchone())
+        conn.close()
+
+        return abilities
+
     # Return a list of all games in the database.
     def get_games(self) -> list:
         conn = sqlite3.connect(self._database)
