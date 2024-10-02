@@ -169,7 +169,7 @@ class ViewerTab:
         self.secondary_type_icon_lbl.grid(column=1, row=1)
 
         # Place Subframe.
-        self.heading_subframe.grid(column=2, row=0, pady=5, padx=10, sticky="n")
+        self.heading_subframe.grid(column=2, row=0, pady=5, padx=10, sticky=N, rowspan=2)
 
     # Create subframe to hold stat-related UI elements.
     def create_stats_subframe(self):
@@ -199,7 +199,7 @@ class ViewerTab:
             self.stat_bars.append(stat_bar)
 
         # Place Subframe.
-        self.stats_subframe.grid(column=3, row=0, pady=10, sticky=N)
+        self.stats_subframe.grid(column=3, row=0, pady=10, sticky=N, rowspan=2)
 
     def create_forms_subframe(self):
         # Subframe to contain controls.
