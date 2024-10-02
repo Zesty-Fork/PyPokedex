@@ -32,7 +32,7 @@ class PokedexApp:
     def create_main_window(self) -> None:
         root = Tk()
         root.title(TITLE)
-        root.geometry("800x580")
+        root.geometry("565x585")
         root.resizable(False, False)
 
         # Remove the minimize/maximize button (Windows only)
