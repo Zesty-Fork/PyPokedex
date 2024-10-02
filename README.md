@@ -2,7 +2,9 @@
 Pokédex written in Python.
 
 ## Overview
-- This is a straightforward Python Pokédex application designed to provide game-accurate information about Pokémon from Generation 1 through Generation 9. The app uses a SQLite backend to store all data, including images. It also features a Tkinter-based frontend. Notably, the application has no pythonic dependencies and runs on Python 3.8+.
+- This is a straightforward Python Pokédex application designed to provide game-accurate information about Pokémon from Generation 1 through Generation 9. The app uses a SQLite backend to store all data, including images. It also features a Tkinter-based frontend.
+- The application has no pythonic dependencies and runs on Python 3.8+.
+- The ERD for the PokedexDB data model can be found in the DB folder, as a .drawio file.
 
 ## Features
 - **View Pokémon Data**: View Pokémon images (both shiny and normal), abilities, stats, types, and forms.
