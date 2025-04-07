@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <span class="title"><h1>{% block title %} Viewer {% endblock %}</h1></span>
+    <div class="content">
+        <h2>This is the viewer page within the pokedex blueprint</h2>
+        <div>
+            <select class="games">
+            {% for game in games %}
+            <option>{{ game.name }}</option>
+            {% endfor %}
+        </select>
+        </div>
+
+        <div>
+            <select class="games">
+            {% for game_pokedex in game_pokedexes %}
+                <option>{{ game_pokedex.name }}</option>
+            {% endfor %}
+        </select>
+        </div>
+        <hr>
+        <div>
+            <select class="pokemon" size="16">
+            {% for pokemon in pokemon_data %}
+                <option>{{ pokemon.id }} {{ pokemon.name }}</option>
+            {% endfor %}
+            </select>
+        </div>
+    </div>
+{% endblock %}

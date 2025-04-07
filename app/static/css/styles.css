@@ -1,0 +1,83 @@
+/* styles.css */
+@font-face {
+    font-family: "FreestyleScript";
+    src: url("../font/FreestyleScript.woff2") format("woff2"),
+         url("../font/FreestyleScript.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+}
+
+.logo {
+    height: 100px;
+}
+
+.post {
+    background-color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f2f5;
+}
+
+header {
+    background-color: #4267B2;
+    color: white;
+    padding: 10px 0;
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+nav ul {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+nav ul li {
+    display: inline;
+}
+
+nav ul li a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+main {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+
+/*
+ul {
+  font-family: "FreestyleScript", sans-serif;
+  font-size: 3.5rem;
+  list-style-type: none;
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+
+ul li:hover {
+  background-color: #b2e0da;
+}
+
+
+*/

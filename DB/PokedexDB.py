@@ -15,7 +15,7 @@ def image_to_blob(image_path: str) -> bytes:
 
 class PokedexDB:
     def __init__(self):
-        self._database: str = f"{dirname(__file__)}/PokedexDB.sqlite3"
+        self._database: str = f"{dirname(__file__)}/pokedex.db"
 
     # Get dict of Pokémon header data (TypeSetID, StatSetID, etc.) for passed game and dex names.
     def get_pokedex_headers(self, game: str, dex: str) -> dict:
