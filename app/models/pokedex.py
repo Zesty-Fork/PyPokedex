@@ -14,9 +14,11 @@ class Pokemon(db.Model):
     id: int = db.Column(db.Integer, primary_key=True)
     name: str = db.Column(db.String(150))
 
+
 class Game(db.Model):
     id: int = db.Column(db.Integer, primary_key=True)
     name: str = db.Column(db.String(150))
+
 
 class GamePokedex(db.Model):
     id: int = db.Column(db.Integer, primary_key=True)

@@ -5,15 +5,10 @@ from app.models.pokedex import Pokemon, Game, GamePokedex
 
 @bp.route("/")
 def index():
-    return render_template("pokedex/index.html")
-
-
-@bp.route("/viewer/")
-def viewer():
     games: list = Game.query.all()
     game_pokedexes: list = GamePokedex.query.all()
     pokemon: list = Pokemon.query.all()
-    return render_template("pokedex/viewer.html", games=games, game_pokedexes=game_pokedexes, pokemon_data=pokemon)
+    return render_template("pokedex/index.html", games=games, game_pokedexes=game_pokedexes, pokemon_data=pokemon)
 
 
 @bp.route("/editor/")
