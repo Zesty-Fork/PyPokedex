@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
         data.append("id", (level==1 ? 0 : document.getElementById("cat1").value));
 
         // (A2) AJAX FETCH CATEGORIES
-        fetch("/getcat", { method: "POST", body: data })
+        post("/api/games", { method: "POST", body: data })
             .then(res => res.json())
             .then(cat => {
                 // (A2-1) UPDATE HTML SELECTOR

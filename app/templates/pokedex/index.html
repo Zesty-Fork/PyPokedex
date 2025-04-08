@@ -10,27 +10,15 @@
 
     <div class="content">
         <div>
-            <select id="comboGames" class="games">
-            {% for game in games %}
-            <option>{{ game.name }}</option>
-            {% endfor %}
-        </select>
+            <select id="comboGames" class="games"></select>
         </div>
 
         <div>
-            <select id="comboGamePokedexes" class="games">
-            {% for game_pokedex in game_pokedexes %}
-                <option>{{ game_pokedex.name }}</option>
-            {% endfor %}
-        </select>
+            <select id="comboGamePokedexes" class="games"></select>
         </div>
         <hr>
         <div>
-            <select class="pokemon" size="16">
-            {% for pokemon in pokemon_data %}
-                <option>{{ pokemon.id }} {{ pokemon.name }}</option>
-            {% endfor %}
-            </select>
+            <select class="pokemon" size="16"></select>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/pokedex.js') }}"></script>
