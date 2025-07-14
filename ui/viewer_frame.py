@@ -34,39 +34,41 @@ def focus_first(tree: Treeview) -> None:
 class ViewerFrame(Frame):
     def __init__(self) -> None:
         super().__init__()
+        self.bind("<Configure>", self._on_resize)
 
         # Subframes to contain controls.
-        self.selection_subframe: Optional[Frame] = None
-        self.data_subframe: Optional[Frame] = None
+        self.selection_subframe: Frame = Frame(self)
+        self.data_subframe: Frame = Frame(self)
 
         # Groups to organize subframes
-        self.pokemon_tree_group: Optional[Frame] = None
-        self.portrait_group: Optional[Frame] = None
-        self.type_group: Optional[Frame] = None
-        self.stats_group: Optional[Frame] = None
-        self.ability_group: Optional[Frame] = None
+        self.pokemon_tree_group: Frame = Frame(self.selection_subframe)
+        self.portrait_group: Frame = Frame(self.data_subframe)
+        self.type_group: Frame = Frame(self.data_subframe)
+        self.stats_group: Frame = Frame(self.data_subframe)
+        self.ability_group: Frame = Frame(self.data_subframe)
 
         # Control headers (Selection Subframe)
         self.game_var: StringVar = StringVar()
-        self.game_selector: Optional[OptionMenu] = None
+        self.game_menu: OptionMenu = OptionMenu(self.selection_subframe, self.game_var)
         self.dex_var: StringVar = StringVar()
-        self.dex_selector: Optional[OptionMenu] = None
+        self.dex_menu: OptionMenu = OptionMenu(self.selection_subframe, self.dex_var)
         self.search_var: StringVar = StringVar()
-        self.search_bar: Optional[Entry] = None
+        self.search_entry: Entry = Entry(self.selection_subframe, textvariable=self.search_var,
+                                         foreground="gray")  # TODO Style
         self.pokemon_tree: Optional[Treeview] = None
         self.pokemon_tree_scrollbar: Optional[Scrollbar] = None
         self.form_tree: Optional[Treeview] = None
 
         # Control headers (Data Subframe [Portrait Group])
-        self.portrait_icon: Optional[PhotoImage] = None
+        self.portrait_icon: PhotoImage = PhotoImage()
         self.portrait_icon_lbl: Optional[Label] = None
         self.shiny: IntVar = IntVar()
         self.shiny_check: Optional[Checkbutton] = None
 
         # Control headers (Data Subframe [Type Group])
-        self.primary_type_icon: Optional[PhotoImage] = None
+        self.primary_type_icon: PhotoImage = PhotoImage()
         self.primary_type_icon_lbl: Optional[Label] = None
-        self.secondary_type_icon: Optional[PhotoImage] = None
+        self.secondary_type_icon: PhotoImage = PhotoImage()
         self.secondary_type_icon_lbl: Optional[Label] = None
 
         # Control headers (Data Subframe [Stats Group])
@@ -74,12 +76,13 @@ class ViewerFrame(Frame):
         self.stat_bars: list = []
 
         # Control headers (Data Subframe [Ability Group])
-        self.primary_ability_lbl: Optional[Label] = None
-        self.secondary_ability_lbl: Optional[Label] = None
-        self.hidden_ability_lbl: Optional[Label] = None
-        self.primary_ability: Optional[Label] = None
-        self.secondary_ability: Optional[Label] = None
-        self.hidden_ability: Optional[Label] = None
+        self.primary_ability_lbl: Label = Label(self.ability_group, width=10, text="Ability 1")
+        self.secondary_ability_lbl: Label = Label(self.ability_group, width=10, text="Ability 2")
+        self.hidden_ability_lbl: Label = Label(self.ability_group, width=10, text="Hidden",
+                                               foreground="gray")  # TODO Style
+        self.primary_ability: Label = Label(self.ability_group, style="Ability.TLabel", width=32)
+        self.secondary_ability: Label = Label(self.ability_group, style="Ability.TLabel", width=32)
+        self.hidden_ability: Label = Label(self.ability_group, style="HiddenAbility.TLabel", width=32)
 
         # List to store passed Pokémon data.
         self.selector_data: list = []
@@ -92,14 +95,7 @@ class ViewerFrame(Frame):
 
     # Create subframe to hold Pokémon selection tree and related controls.
     def create_selection_subframe(self) -> None:
-        # Subframe to contain controls
-        self.selection_subframe = Frame(self)
-        self.pokemon_tree_group = Frame(self.selection_subframe)
-
         # Control declarations
-        self.game_selector = OptionMenu(self.selection_subframe, self.game_var)
-        self.dex_selector = OptionMenu(self.selection_subframe, self.dex_var)
-        self.search_bar = Entry(self.selection_subframe, textvariable=self.search_var, foreground="gray")
         self.pokemon_tree = Treeview(
             self.pokemon_tree_group,
             columns=["PokemonID", "NationalDexNo", "PokemonName"],
@@ -122,10 +118,10 @@ class ViewerFrame(Frame):
         )
 
         # Control configurations
-        self.search_bar.insert(0, "Search...")
-        self.search_bar.bind("<FocusIn>", self.on_search_bar_focus_in)
-        self.search_bar.bind("<FocusOut>", self.on_search_bar_focus_out)
-        self.search_var.trace("w", self.on_search_var_changed)
+        self.search_entry.insert(0, "Search...")
+        self.search_entry.bind("<FocusIn>", self._on_search_bar_focus_in)
+        self.search_entry.bind("<FocusOut>", self._on_search_bar_focus_out)
+        self.search_var.trace("w", self._on_search_var_changed)
         self.dex_var.set("Not Selected")
         self.pokemon_tree.column("NationalDexNo", width=30, minwidth=30)
         self.pokemon_tree.heading(
@@ -145,10 +141,10 @@ class ViewerFrame(Frame):
 
         # Place controls
         Separator(self.selection_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
-        self.game_selector.pack(side=TOP, fill=X)
-        self.dex_selector.pack(side=TOP, fill=X)
+        self.game_menu.pack(side=TOP, fill=X)
+        self.dex_menu.pack(side=TOP, fill=X)
         Separator(self.selection_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
-        self.search_bar.pack(side=TOP, fill=X)
+        self.search_entry.pack(side=TOP, fill=X)
         self.pokemon_tree.pack(side=LEFT, fill=BOTH)
         self.pokemon_tree_scrollbar.pack(side=LEFT, fill=Y)
         self.pokemon_tree_group.pack(side=TOP, fill=X)
@@ -156,15 +152,9 @@ class ViewerFrame(Frame):
         self.form_tree.pack(side=TOP, fill=X)
 
         # Place Subframe
-        self.selection_subframe.pack(side=LEFT, fill=Y)
+        self.selection_subframe.pack(side=LEFT, fill=Y, expand=True)
 
     def create_data_subframe(self) -> None:
-        # Subframe to contain controls.
-        self.data_subframe = Frame(self)
-        self.portrait_group = Frame(self.data_subframe)
-        self.type_group = Frame(self.data_subframe)
-        self.stats_group = Frame(self.data_subframe)
-        self.ability_group = Frame(self.data_subframe)
 
         # Control declarations (Portrait Group)
         self.portrait_icon_lbl = Label(self.portrait_group)
@@ -200,12 +190,6 @@ class ViewerFrame(Frame):
             self.stat_bars.append(stat_bar)
 
         # Control declarations (Ability Group)
-        self.primary_ability_lbl = Label(self.ability_group, width=10, text="Ability 1")
-        self.secondary_ability_lbl = Label(self.ability_group, width=10, text="Ability 2")
-        self.hidden_ability_lbl = Label(self.ability_group, width=10, text="Hidden", foreground="gray")
-        self.primary_ability = Label(self.ability_group, style="Ability.TLabel", width=32)
-        self.secondary_ability = Label(self.ability_group, style="Ability.TLabel", width=32)
-        self.hidden_ability = Label(self.ability_group, style="HiddenAbility.TLabel", width=32)
         self.primary_ability_lbl.grid(column=0, row=0, pady=10)
         self.secondary_ability_lbl.grid(column=0, row=1, pady=10)
         self.hidden_ability_lbl.grid(column=0, row=2, pady=10)
@@ -215,31 +199,31 @@ class ViewerFrame(Frame):
 
         # Place controls
         Separator(self.data_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
-        self.portrait_group.pack(side=TOP)
+        self.portrait_group.pack(side=TOP, fill=Y, expand=True)
         Separator(self.data_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
-        self.type_group.pack(side=TOP)
+        self.type_group.pack(side=TOP, fill=Y, expand=True)
         Separator(self.data_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
-        self.stats_group.pack(side=TOP)
+        self.stats_group.pack(side=TOP, fill=Y, expand=True)
         Separator(self.data_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
-        self.ability_group.pack(side=TOP)
+        self.ability_group.pack(side=TOP, fill=Y, expand=True)
 
         # Place Subframe.
-        self.data_subframe.pack(side=TOP)
+        self.data_subframe.pack(side=LEFT, fill=Y, expand=True)
 
     # Refresh self.game_selector data with passed list.
     def refresh_games(self, games: list) -> None:
-        self.game_selector["menu"].delete(0, END)
+        self.game_menu["menu"].delete(0, END)
         if games:
             for game in games:
-                self.game_selector["menu"].add_command(label=game, command=lambda g=game: self.game_var.set(g))
+                self.game_menu["menu"].add_command(label=game, command=lambda g=game: self.game_var.set(g))
             self.game_var.set(games[0])
 
     # Refresh self.dex_selector data with passed list.
     def refresh_dexes(self, dexes: list) -> None:
-        self.dex_selector["menu"].delete(0, END)
+        self.dex_menu["menu"].delete(0, END)
         if dexes:
             for dex in dexes:
-                self.dex_selector["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
+                self.dex_menu["menu"].add_command(label=dex, command=lambda d=dex: self.dex_var.set(d))
             self.dex_var.set(dexes[0])
         else:
             self.dex_var.set("None")
@@ -256,7 +240,7 @@ class ViewerFrame(Frame):
         for values in self.selector_data:
             self.pokemon_tree.insert("", END, values=values)
 
-        self.on_search_var_changed()
+        # self._on_search_var_changed()
         focus_first(self.pokemon_tree)
 
     # Flushes form values, and replaces them with the passed Pokémon form data.
@@ -274,17 +258,17 @@ class ViewerFrame(Frame):
 
     # Set portrait icon from passed binary data.
     def refresh_portrait_icon(self, icon_data: bytes) -> None:
-        self.portrait_icon = PhotoImage(data=icon_data)
+        self.portrait_icon.config(data=icon_data)
         self.portrait_icon_lbl.config(image=self.portrait_icon)
 
     # Set type icons from passed tuple of binary data.
     def refresh_type_icons(self, type_icons: tuple) -> None:
         # Refresh primary type
-        self.primary_type_icon = PhotoImage(data=type_icons[0])
+        self.primary_type_icon.config(data=type_icons[0])
         self.primary_type_icon_lbl.config(image=self.primary_type_icon)
 
         # Refresh secondary type
-        self.secondary_type_icon = PhotoImage(data=type_icons[1])
+        self.secondary_type_icon.config(data=type_icons[1])
         self.secondary_type_icon_lbl.config(image=self.secondary_type_icon)
 
     # Set stat bar data to passed list of stats.
@@ -365,17 +349,20 @@ class ViewerFrame(Frame):
         return dex
 
     # Event handlers
-    def on_search_var_changed(self, *args) -> None:
+    def _on_resize(self, event) -> None:
+        pass
+
+    def _on_search_var_changed(self, *args) -> None:
         term: str = self.search_var.get().lower()
         if term != "search...":
             self.search_pokemon_tree(term)
 
-    def on_search_bar_focus_in(self, event) -> None:
-        if self.search_bar.get() == "Search...":
-            self.search_bar.delete(0, END)
-            self.search_bar.config(foreground="black")
+    def _on_search_bar_focus_in(self, event) -> None:
+        if self.search_entry.get() == "Search...":
+            self.search_entry.delete(0, END)
+            self.search_entry.config(foreground="black")
 
-    def on_search_bar_focus_out(self, event) -> None:
-        if self.search_bar.get() == "":
-            self.search_bar.insert(0, "Search...")
-            self.search_bar.config(foreground="gray")
+    def _on_search_bar_focus_out(self, event) -> None:
+        if self.search_entry.get() == "":
+            self.search_entry.insert(0, "Search...")
+            self.search_entry.config(foreground="gray")

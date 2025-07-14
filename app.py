@@ -1,5 +1,5 @@
 # Python Libraries
-from tkinter import Tk
+from tkinter import Tk, LEFT, BOTH
 from tkinter.ttk import Notebook, Style
 
 # Local Libraries
@@ -9,7 +9,7 @@ from ui.editor_frame import EditorFrame
 
 # Global Declarations
 TITLE: str = "PyPokédex"
-VERSION: str = "1.0.1"
+VERSION: str = "1.0.2"
 
 
 class PokedexApp(Tk):
@@ -29,6 +29,7 @@ class PokedexApp(Tk):
         style.configure("HiddenAbility.TLabel", borderwidth=1, relief="solid", padding=5, foreground="gray")
 
         self.title(f"{TITLE} - {VERSION}")
+        self.bind("<Configure>", self._on_resize)
 
         self.db: PokedexDB = PokedexDB()
 
@@ -40,16 +41,14 @@ class PokedexApp(Tk):
         self.pokedex_headers: dict = {}
 
         # Start application
-        self.create_main_window()
+        self.create_widgets()
 
-    def create_main_window(self) -> None:
-        # self.geometry("565x585")
+    def create_widgets(self) -> None:
+        self.geometry("640x640")
         # self.resizable(False, False)
 
         self.tab_menu.add(self.viewer_frame, text="Pokédex Viewer")
         self.tab_menu.add(self.editor_frame, text="Pokédex Editor")
-
-        # self.editor_tab: Frame = Frame(self.tab_menu)
 
         self.viewer_frame.pokemon_tree.bind("<<TreeviewSelect>>", self._on_pokemon_changed)
         self.viewer_frame.form_tree.bind("<<TreeviewSelect>>", self._on_form_changed)
@@ -60,9 +59,12 @@ class PokedexApp(Tk):
         self.viewer_frame.refresh_games(games)
 
         # Frame placement
-        self.tab_menu.grid(column=0, row=0)
+        self.tab_menu.pack(side=LEFT, fill=BOTH, expand=True)
 
     # Event Handlers
+    def _on_resize(self, event):
+        self.tab_menu.config(width=event.width, height=event.height)
+
     def _on_pokemon_changed(self, event) -> None:
         game: str = self.viewer_frame.get_game()
         dex: str = self.viewer_frame.get_dex()
@@ -113,10 +115,6 @@ class PokedexApp(Tk):
         self.viewer_frame.refresh_portrait_icon(portrait_icon)
 
 
-def main() -> None:
-    app = PokedexApp()
-    app.mainloop()
-
-
 if __name__ == "__main__":
-    main()
+    app: PokedexApp = PokedexApp()
+    app.mainloop()
