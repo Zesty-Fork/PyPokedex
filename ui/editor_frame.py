@@ -1,14 +1,10 @@
 # Python Libraries
 import tkinter as tk
-from tkinter import ttk
+from tkinter.ttk import Frame, Treeview
 from tkinter.filedialog import askopenfilename
 
 # Local Libraries
-from DB.PokedexDB import PokeDexDB
-
-# Global Declarations
-TITLE: str = "RegionalDexBuilder"
-VERSION: str = "1.0.0"  # TODO move to attributes file of some kind
+from db.db import PokedexDB
 
 
 def image_to_blob(image_path: str) -> bytes:
@@ -18,10 +14,11 @@ def image_to_blob(image_path: str) -> bytes:
     return blob
 
 
-class PokemonEditor:
+class EditorFrame(Frame):
     def __init__(self):
         # Database
-        self.db: PokeDexDB = PokeDexDB()
+        super().__init__()
+        self.db: PokedexDB = PokedexDB()
 
         # Selection Variables
         self.cur_pokemon_id: int = 1
@@ -34,20 +31,9 @@ class PokemonEditor:
         self._create_main_window()
 
     def _create_main_window(self):
-        root = tk.Tk()
-        root.title(TITLE)
-        root.geometry("800x600")
-        root.resizable(False, False)
-
-        # Remove the minimize/maximize button (Windows only)
-        try:
-            root.attributes("-toolwindow", True)
-        except tk.TclError:
-            print("Not supported on your platform")
-
         columns: list = ["PokemonID", "NationalDexNo", "PokemonName"]
         displaycolumns: list = ["NationalDexNo", "PokemonName"]
-        self.pkmn_tree = ttk.Treeview(root, columns=columns, displaycolumns=displaycolumns, show="headings")
+        self.pkmn_tree = Treeview(self, columns=columns, displaycolumns=displaycolumns, show="headings")
         self.pkmn_tree.column("NationalDexNo", width=30, minwidth=30)
 
         # Define headings
@@ -56,10 +42,10 @@ class PokemonEditor:
 
         # Control variable declarations
         self.pkmn_tree.bind("<<TreeviewSelect>>", self._on_pokemon_selected)
-        self.icon_normal_lbl = tk.Label(root, width=112, height=112)
-        self.icon_shiny_lbl = tk.Label(root, width=112, height=112)
-        self.split_genders_btn = tk.Button(root, text="Split Gendered Forms", command=self._on_split_genders_clicked)
-        self.add_gigantamax_btn = tk.Button(root, text="Add Gigantamax Form", command=self._on_gigantamax_clicked)
+        self.icon_normal_lbl = tk.Label(self, width=112, height=112)
+        self.icon_shiny_lbl = tk.Label(self, width=112, height=112)
+        self.split_genders_btn = tk.Button(self, text="Split Gendered Forms", command=self._on_split_genders_clicked)
+        self.add_gigantamax_btn = tk.Button(self, text="Add Gigantamax Form", command=self._on_gigantamax_clicked)
 
         # Bindings
         self.icon_normal_lbl.bind("<Button-1>", self._on_icon_normal_clicked)
@@ -74,15 +60,12 @@ class PokemonEditor:
 
         self._refresh_pokemon_list()
 
-        # Start loop
-        root.mainloop()
-
     def _refresh_pokemon_list(self) -> None:
         # Delete items from tree
         self.pkmn_tree.delete(*self.pkmn_tree.get_children())
 
         # Populate Tree
-        for pokemon in self.db.get_pokemon():
+        for pokemon in self.db.get_pokemon("1", "1"):
             self.pkmn_tree.insert("", tk.END, values=pokemon)
 
     # Event Handlers
@@ -111,27 +94,20 @@ class PokemonEditor:
         filename: str = tk.filedialog.askopenfilename()
         if filename:
             image_blob: bytes = image_to_blob(filename)
-            self.db.update_icon_normal(self.cur_pokemon_id, image_blob)
+            self.db.update_portrait_icon(image_blob, self.cur_pokemon_id, False)
             self._on_pokemon_selected("event")
 
     def _on_icon_shiny_clicked(self, event) -> None:
         filename: str = tk.filedialog.askopenfilename()
         if filename:
             image_blob: bytes = image_to_blob(filename)
-            self.db.update_icon_shiny(self.cur_pokemon_id, image_blob)
+            self.db.update_portrait_icon(image_blob, self.cur_pokemon_id, True)
             self._on_pokemon_selected("event")
 
     def _on_split_genders_clicked(self) -> None:
-        self.db.split_gender_forms(self.cur_pokemon_id)
+        # self.db.split_gender_forms(self.cur_pokemon_id)
         self._refresh_pokemon_list()
 
     def _on_gigantamax_clicked(self):
-        self.db.add_gigantamax_form(self.cur_pokemon_id)
+        # self.db.add_gigantamax_form(self.cur_pokemon_id)
         self._refresh_pokemon_list()
-
-def main():
-    dex_builder = PokemonEditor()
-
-
-if __name__ == "__main__":
-    main()

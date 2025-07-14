@@ -1,5 +1,5 @@
 from tkinter import StringVar, END, VERTICAL, PhotoImage, LEFT, TOP, X, Y, BOTH, IntVar, HORIZONTAL
-from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, OptionMenu, Style, Separator, Checkbutton
+from tkinter.ttk import Frame, Label, Progressbar, Treeview, Scrollbar, Entry, OptionMenu, Separator, Checkbutton
 from typing import Optional
 
 
@@ -31,20 +31,9 @@ def focus_first(tree: Treeview) -> None:
         tree.selection_set(children[0])
 
 
-class ViewerTab:
-    def __init__(self, frame: Frame) -> None:
-        self.viewer_frame: Frame = frame
-
-        # Configure styles
-        style: Style = Style()
-        style.theme_use('clam')
-        style.configure("pink.TFrame", background="pink")
-        style.configure("blue.Horizontal.TProgressbar", foreground="blue", background="blue")
-        style.configure("green.Horizontal.TProgressbar", foreground="green", background="green")
-        style.configure("yellow.Horizontal.TProgressbar", foreground="yellow", background="yellow")
-        style.configure("red.Horizontal.TProgressbar", foreground="red", background="red")
-        style.configure("Ability.TLabel", borderwidth=1, relief="solid", padding=5, foreground="black")
-        style.configure("HiddenAbility.TLabel", borderwidth=1, relief="solid", padding=5, foreground="gray")
+class ViewerFrame(Frame):
+    def __init__(self) -> None:
+        super().__init__()
 
         # Subframes to contain controls.
         self.selection_subframe: Optional[Frame] = None
@@ -98,13 +87,13 @@ class ViewerTab:
 
         # Create widgets.
         self.create_selection_subframe()
-        Separator(self.viewer_frame, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
+        Separator(self, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
         self.create_data_subframe()
 
     # Create subframe to hold Pokémon selection tree and related controls.
     def create_selection_subframe(self) -> None:
         # Subframe to contain controls
-        self.selection_subframe = Frame(self.viewer_frame)
+        self.selection_subframe = Frame(self)
         self.pokemon_tree_group = Frame(self.selection_subframe)
 
         # Control declarations
@@ -171,7 +160,7 @@ class ViewerTab:
 
     def create_data_subframe(self) -> None:
         # Subframe to contain controls.
-        self.data_subframe = Frame(self.viewer_frame)
+        self.data_subframe = Frame(self)
         self.portrait_group = Frame(self.data_subframe)
         self.type_group = Frame(self.data_subframe)
         self.stats_group = Frame(self.data_subframe)
