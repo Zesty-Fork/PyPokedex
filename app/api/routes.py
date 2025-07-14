@@ -1,8 +1,9 @@
 import json
 
-from flask import request, jsonify, Response
+from flask import jsonify, Response
+
 from app.api import bp
-from app.models.api import Game, GamePokedex
+from app.models.api import Game, GamePokedex, PokemonView
 
 
 @bp.get("/")
@@ -34,3 +35,10 @@ def get_game_pokedexes(game_id: int):
     status_code: int = 200
     game_pokedexes: GamePokedex = GamePokedex.query.filter(GamePokedex.game_id == game_id).all()
     return jsonify([game_pokedex.serialized for game_pokedex in game_pokedexes]), status_code
+
+
+@bp.get("/pokemon")
+def get_pokemon():
+    status_code: int = 200
+    records: PokemonView = PokemonView.query.all()
+    return jsonify([record.serialized for record in records]), status_code
