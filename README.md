@@ -19,9 +19,12 @@ Pokédex written in Python.
 - No installation is required.
 
 ## Usage
+### If using source code:
 1. **Launch the Application**: Run the `PyPokedex.py` file to start the application.
    ```bash
    python PyPokedex.py
+### If using executable:
+1. **Launch the Application**: Run the `PyPokedex.exe` executable file to start the application. Only works on Windows operating systems.
 
 ## Planned Changes/Features
 1. **Pokédex Editor**: Quickly edit or add new Pokémon data through the GUI frontend.
