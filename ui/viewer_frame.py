@@ -34,7 +34,11 @@ def focus_first(tree: Treeview) -> None:
 class ViewerFrame(Frame):
     def __init__(self) -> None:
         super().__init__()
-        self.bind("<Configure>", self._on_resize)
+        # self.bind("<Configure>", self._on_resize)
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        self.columnconfigure(2, weight=2)
 
         # Subframes to contain controls.
         self.selection_subframe: Frame = Frame(self)
@@ -90,7 +94,8 @@ class ViewerFrame(Frame):
 
         # Create widgets.
         self.create_selection_subframe()
-        Separator(self, orient=VERTICAL).pack(side=LEFT, fill=Y, padx=10)
+        Separator(self, orient=VERTICAL).grid(column=1, row=0, sticky="nsew", padx=10,
+                                              pady=10)  #.pack(side=LEFT, fill=Y, padx=10)
         self.create_data_subframe()
 
     # Create subframe to hold Pokémon selection tree and related controls.
@@ -100,8 +105,7 @@ class ViewerFrame(Frame):
             self.pokemon_tree_group,
             columns=["PokemonID", "NationalDexNo", "PokemonName"],
             displaycolumns=["NationalDexNo", "PokemonName"],
-            show="headings",
-            height=12
+            show="headings"
 
         )
         self.pokemon_tree_scrollbar: Scrollbar = Scrollbar(
@@ -123,7 +127,7 @@ class ViewerFrame(Frame):
         self.search_entry.bind("<FocusOut>", self._on_search_bar_focus_out)
         self.search_var.trace("w", self._on_search_var_changed)
         self.dex_var.set("Not Selected")
-        self.pokemon_tree.column("NationalDexNo", width=30, minwidth=30)
+        self.pokemon_tree.column("NationalDexNo", width=30, stretch=False)
         self.pokemon_tree.heading(
             "NationalDexNo",
             text="#",
@@ -145,14 +149,15 @@ class ViewerFrame(Frame):
         self.dex_menu.pack(side=TOP, fill=X)
         Separator(self.selection_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
         self.search_entry.pack(side=TOP, fill=X)
-        self.pokemon_tree.pack(side=LEFT, fill=BOTH)
+        self.pokemon_tree.pack(side=LEFT, fill=BOTH, expand=True)
         self.pokemon_tree_scrollbar.pack(side=LEFT, fill=Y)
         self.pokemon_tree_group.pack(side=TOP, fill=X)
         Separator(self.selection_subframe, orient=HORIZONTAL).pack(side=TOP, pady=10)
         self.form_tree.pack(side=TOP, fill=X)
 
         # Place Subframe
-        self.selection_subframe.pack(side=LEFT, fill=Y, expand=True)
+        self.selection_subframe.grid(column=0, row=0, sticky="nsew", padx=10,
+                                     pady=10)  # .pack(side=LEFT, fill=Y, expand=True)
 
     def create_data_subframe(self) -> None:
 
@@ -208,7 +213,7 @@ class ViewerFrame(Frame):
         self.ability_group.pack(side=TOP, fill=Y, expand=True)
 
         # Place Subframe.
-        self.data_subframe.pack(side=LEFT, fill=Y, expand=True)
+        self.data_subframe.grid(column=2, row=0, sticky="nsew")  # .pack(side=LEFT, fill=Y, expand=True)
 
     # Refresh self.game_selector data with passed list.
     def refresh_games(self, games: list) -> None:
@@ -350,7 +355,7 @@ class ViewerFrame(Frame):
 
     # Event handlers
     def _on_resize(self, event) -> None:
-        pass
+        self.search_entry.config(width=event.width, height=event.height)
 
     def _on_search_var_changed(self, *args) -> None:
         term: str = self.search_var.get().lower()
