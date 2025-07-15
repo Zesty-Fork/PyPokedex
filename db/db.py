@@ -2,6 +2,7 @@
 
 # Python Libraries
 from sqlite3 import connect, Connection
+from os import path
 
 
 # Helper function to convert images to binary
@@ -11,9 +12,14 @@ def image_to_blob(image_path: str) -> bytes:
     return blob
 
 
+# Get absolute path to resource; necessary for compilation.
+def absolute_path(file_name: str) -> str:
+    return path.abspath(path.join(path.dirname(__file__), file_name))
+
+
 class PokedexDB:
     def __init__(self):
-        self.database: str = "db/db.sqlite3"
+        self.database: str = absolute_path("db.sqlite3")
 
     def _connect(self) -> Connection:
         return connect(self.database)
@@ -171,7 +177,6 @@ class PokedexDB:
             cursor = conn.cursor()
             cursor.execute(query, (image_blob, pokemon_id))
             conn.commit()
-
 
 # Update byte data for a Pokémon's normal appearance
 #def update_type_icon():

@@ -9,7 +9,7 @@ from ui.editor_frame import EditorFrame
 
 # Global Declarations
 TITLE: str = "PyPokédex"
-VERSION: str = "1.0.3"
+VERSION: str = "1.0.4"
 
 
 class PokedexApp(Tk):
@@ -18,7 +18,6 @@ class PokedexApp(Tk):
         super().__init__()
 
         self.minsize(600, 625)
-
 
         # Configure styles
         style: Style = Style()
