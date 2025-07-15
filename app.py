@@ -9,7 +9,7 @@ from ui.editor_frame import EditorFrame
 
 # Global Declarations
 TITLE: str = "PyPokédex"
-VERSION: str = "1.0.4"
+VERSION: str = "1.1.0"
 
 
 class PokedexApp(Tk):
@@ -98,7 +98,7 @@ class PokedexApp(Tk):
         game: str = self.viewer_frame.get_game()
 
         # Refresh dex data
-        dexes: list = self.db.get_dexes(game)
+        dexes: list = self.db.get_pokedexes(game)
         self.viewer_frame.refresh_dexes(dexes)
 
     def _on_dex_changed(self, *args) -> None:

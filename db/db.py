@@ -24,14 +24,19 @@ class PokedexDB:
     def _connect(self) -> Connection:
         return connect(self.database)
 
-    # Get dict of Pokémon header data (TypeSetID, StatSetID, etc.) for passed game and dex names.
+    # Get dict of Pokémon header data (type_set_id, stat_set_id, etc.) for passed game and dex names.
     def get_pokedex_headers(self, game: str, dex: str) -> dict:
         query: str = """
-            SELECT pd.PokemonID, pd.TypeSetID, pd.StatSetID, pd.AbilitySetID, g.GameID
-            FROM PokeDex pd
-            JOIN GameDex gd ON gd.GameDexID = pd.GameDexID
-            JOIN Game g ON g.GameID = gd.GameID
-            WHERE g.GameName = ? AND gd.GameDexName = ?
+            SELECT pokedex.pokemon_id
+                ,pokedex.type_set_id
+                ,pokedex.stat_set_id
+                ,pokedex.ability_set_id
+                ,game.id AS [game_id]
+            FROM pokedex
+            JOIN game_pokedex ON game_pokedex.id = pokedex.game_pokedex_id
+            JOIN game ON game.id = game_pokedex.game_id
+            WHERE game.name = ?
+                AND game_pokedex.name = ?
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -41,13 +46,17 @@ class PokedexDB:
     # Return a list of Pokémon base forms from the National Dex
     def get_pokemon(self, game: str, dex: str) -> list:
         query: str = """
-            SELECT p.NationalDexID, pd.DexOrder, p.PokemonName
-            FROM Pokemon p
-            JOIN PokeDex pd ON pd.PokemonID = p.PokemonID
-            JOIN GameDex gd ON gd.GameDexID = pd.GameDexID
-            JOIN Game g ON g.GameID = gd.GameID
-            WHERE p.FormID = 1 AND g.GameName = ? AND gd.GameDexName = ?
-            ORDER BY pd.DexOrder, p.FormID
+            SELECT pokemon.national_pokedex_id
+                ,pokedex.pokedex_order
+                ,pokemon.name
+            FROM pokemon
+            JOIN pokedex ON pokedex.pokemon_id = pokemon.id
+            JOIN game_pokedex ON game_pokedex.id = pokedex.game_pokedex_id
+            JOIN game ON game.id = game_pokedex.game_id
+            WHERE pokemon.form_id = 1 AND game.name = ?
+                AND game_pokedex.name = ?
+            ORDER BY pokedex.pokedex_order
+                ,pokemon.form_id
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -57,13 +66,16 @@ class PokedexDB:
     # Return a list of Pokémon base forms from the National Dex
     def get_forms(self, game: str, dex: str, national_dex_id: int) -> list:
         query: str = """
-            SELECT p.PokemonID, p.FormName
-            FROM Pokemon p
-            JOIN PokeDex pd ON pd.PokemonID = p.PokemonID
-            JOIN GameDex gd ON gd.GameDexID = pd.GameDexID
-            JOIN Game g ON g.GameID = gd.GameID
-            WHERE g.GameName = ? AND gd.GameDexName = ? AND p.NationalDexID = ?
-            ORDER BY p.FormID
+            SELECT pokemon.id
+                ,pokemon.form_name
+            FROM pokemon
+            JOIN pokedex ON pokedex.pokemon_id = pokemon.id
+            JOIN game_pokedex ON game_pokedex.id = pokedex.game_pokedex_id
+            JOIN game ON game.id = game_pokedex.game_id
+            WHERE game.name = ?
+                AND game_pokedex.name = ?
+                AND pokemon.national_pokedex_id = ?
+            ORDER BY pokemon.form_id
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -73,11 +85,12 @@ class PokedexDB:
     # Get byte data for a Pokémon's types.
     def get_type_icons(self, type_set_id: int) -> tuple:
         query: str = """
-            SELECT t1.TypeIcon, t2.TypeIcon
-            FROM TypeSet ts
-            JOIN Type t1 ON t1.TypeID = ts.PrimaryTypeID
-            JOIN Type t2 ON t2.TypeID = ts.SecondaryTypeID
-            WHERE ts.TypeSetID = ?
+            SELECT type1.icon AS [type1_icon]
+                ,type2.icon AS [type2_icon]
+            FROM type_set
+            JOIN type AS [type1] ON type1.id = type_set.primary_type_id
+            JOIN type AS [type2] ON type2.id = type_set.secondary_type_id
+            WHERE type_set.id = ?
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -87,9 +100,14 @@ class PokedexDB:
     # Return a list of Pokémon stats
     def get_stats(self, stat_set_id: int) -> list:
         query: str = """
-            SELECT HP, ATK, DEF, SPA, SPD, SPE
-            FROM StatSet
-            WHERE StatSetID = ?
+            SELECT hp
+                ,atk
+                ,def
+                ,spa
+                ,spd
+                ,spe
+            FROM stat_set
+            WHERE id = ?
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -99,11 +117,12 @@ class PokedexDB:
     # Return a tuple of max Pokémon stats (max HP, max other stats)
     def get_max_stats(self, game_id: int) -> tuple:
         query: str = """
-            SELECT MAX(ss.HP), MAX(MAX(ss.ATK, ss.DEF, ss.SPA, ss.SPE))
-            FROM PokeDex pd
-            JOIN GameDex gd ON gd.GameDexID = pd.GameDexID
-            JOIN StatSet ss ON ss.StatSetID = pd.StatSetID
-            WHERE gd.GameID = ?
+            SELECT MAX(stat_set.HP) AS [max_hp_stat]
+                ,MAX(MAX(stat_set.ATK, stat_set.DEF, stat_set.SPA, stat_set.SPE)) [max_non_hp_stat]
+            FROM pokedex
+            JOIN game_pokedex ON game_pokedex.id = pokedex.game_pokedex_id
+            JOIN stat_set ON stat_set.id = pokedex.stat_set_id
+            WHERE game_pokedex.game_id = ?
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -114,12 +133,14 @@ class PokedexDB:
     # Return tuple of ability names for passed ability set ID.
     def get_abilities(self, ability_set_id: int) -> tuple:
         query: str = """
-            SELECT IFNULL(a1.AbilityName, 'N/A'), IFNULL(a2.AbilityName, 'N/A'), IFNULL(a3.AbilityName, 'N/A')
-            FROM AbilitySet abs
-            JOIN Ability a1 ON a1.AbilityID = abs.PrimaryAbilityID
-            JOIN Ability a2 ON a2.AbilityID = abs.SecondaryAbilityID
-            JOIN Ability a3 ON a3.AbilityID = abs.HiddenAbilityID
-            WHERE abs.AbilitySetID = ?
+            SELECT IFNULL(primary_ability.name, 'N/A') AS [primary_ability_name]
+                ,IFNULL(secondary_ability.name, 'N/A') AS [secondary_ability_name]
+                ,IFNULL(hidden_ability.name, 'N/A') AS [hidden_ability_name]
+            FROM ability_set
+            JOIN ability AS [primary_ability] ON primary_ability.id = ability_set.primary_ability_id
+            JOIN ability AS [secondary_ability] ON secondary_ability.id = ability_set.secondary_ability_id
+            JOIN ability AS [hidden_ability] ON hidden_ability.id = ability_set.hidden_ability_id
+            WHERE ability_set.id = ?
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -129,9 +150,9 @@ class PokedexDB:
     # Return a list of all games in the database.
     def get_games(self) -> list:
         query: str = """
-            SELECT GameName
-            FROM Game
-            ORDER BY GameID
+            SELECT game.name
+            FROM game
+            ORDER BY game.id
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -139,26 +160,26 @@ class PokedexDB:
             return [game[0] for game in cursor.fetchall()]
 
     # Return a list of Pokedex names for a specific game.
-    def get_dexes(self, game: str) -> list:
+    def get_pokedexes(self, game_name: str) -> list:
         query: str = """
-            SELECT gd.GameDexName
-            FROM GameDex gd
-            JOIN Game g ON g.GameID = gd.GameID
-            WHERE g.GameName = ?
-            ORDER BY gd.GameDexID
+            SELECT game_pokedex.name AS [game_pokedex_name]
+            FROM game_pokedex
+            JOIN game ON game.id = game_pokedex.game_id
+            WHERE game.name = ?
+            ORDER BY game_pokedex.id
         """
         with self._connect() as conn:
             cursor = conn.cursor()
-            cursor.execute(query, (game,))
+            cursor.execute(query, (game_name,))
             return [dex[0] for dex in cursor.fetchall()]
 
     # Get byte data for a Pokémon's appearance
-    def get_portrait_icon(self, pokemon_id: int, shiny: bool) -> bytes:
-        icon: str = "IconShiny" if shiny else "IconNormal"
+    def get_portrait_icon(self, pokemon_id: int, is_shiny: bool) -> bytes:
+        icon: str = "icon_shiny" if is_shiny else "icon_normal"
         query: str = f"""
-            SELECT {icon}
-            FROM Pokemon
-            WHERE PokemonID = ?
+            SELECT pokemon.{icon}
+            FROM pokemon
+            WHERE pokemon.id = ?
         """
         with self._connect() as conn:
             cursor = conn.cursor()
@@ -166,12 +187,12 @@ class PokedexDB:
             return cursor.fetchone()[0]
 
     # Update byte data for a Pokémon's normal appearance
-    def update_portrait_icon(self, image_blob: bytes, pokemon_id: int, shiny: bool) -> None:
-        icon: str = "IconShiny" if shiny else "IconNormal"
+    def update_portrait_icon(self, image_blob: bytes, pokemon_id: int, is_shiny: bool) -> None:
+        icon: str = "icon_shiny" if is_shiny else "icon_normal"
         query: str = f"""
-            UPDATE Pokemon
-            SET {icon} = ?
-            WHERE PokemonID = ?
+            UPDATE pokemon
+            SET pokemon.{icon} = ?
+            WHERE pokemon.id = ?
         """
         with self._connect() as conn:
             cursor = conn.cursor()

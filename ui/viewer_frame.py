@@ -65,15 +65,15 @@ class ViewerFrame(Frame):
 
         # Control headers (Data Subframe [Portrait Group])
         self.portrait_icon: PhotoImage = PhotoImage()
-        self.portrait_icon_lbl: Optional[Label] = None
+        self.portrait_icon_lbl: Label = Label(self.portrait_group)
         self.shiny: IntVar = IntVar()
-        self.shiny_check: Optional[Checkbutton] = None
+        self.shiny_check: Checkbutton = Checkbutton(self.portrait_group, text="Shiny", variable=self.shiny)
 
         # Control headers (Data Subframe [Type Group])
         self.primary_type_icon: PhotoImage = PhotoImage()
-        self.primary_type_icon_lbl: Optional[Label] = None
+        self.primary_type_icon_lbl: Label = Label(self.type_group)
         self.secondary_type_icon: PhotoImage = PhotoImage()
-        self.secondary_type_icon_lbl: Optional[Label] = None
+        self.secondary_type_icon_lbl: Label = Label(self.type_group)
 
         # Control headers (Data Subframe [Stats Group])
         self.stat_value_labels: list = []
@@ -94,8 +94,7 @@ class ViewerFrame(Frame):
 
         # Create widgets.
         self.create_selection_subframe()
-        Separator(self, orient=VERTICAL).grid(column=1, row=0, sticky="nsew", padx=10,
-                                              pady=10)  #.pack(side=LEFT, fill=Y, padx=10)
+        Separator(self, orient=VERTICAL).grid(column=1, row=0, sticky="nsew", padx=10, pady=10)
         self.create_data_subframe()
 
     # Create subframe to hold Pokémon selection tree and related controls.
@@ -156,21 +155,16 @@ class ViewerFrame(Frame):
         self.form_tree.pack(side=TOP, fill=X)
 
         # Place Subframe
-        self.selection_subframe.grid(column=0, row=0, sticky="nsew", padx=10,
-                                     pady=10)  # .pack(side=LEFT, fill=Y, expand=True)
+        self.selection_subframe.grid(column=0, row=0, sticky="nsew", padx=10, pady=10)
 
     def create_data_subframe(self) -> None:
 
         # Control declarations (Portrait Group)
-        self.portrait_icon_lbl = Label(self.portrait_group)
-        self.shiny_check = Checkbutton(self.portrait_group, text="Shiny", variable=self.shiny)
         self.portrait_icon_lbl.grid(column=0, row=0)
         self.shiny_check.grid(column=0, row=1)
 
         # Control declarations (Type Group)
-        self.primary_type_icon_lbl = Label(self.type_group)
         self.primary_type_icon_lbl.grid(column=0, row=0)
-        self.secondary_type_icon_lbl = Label(self.type_group)
         self.secondary_type_icon_lbl.grid(column=1, row=0)
 
         # Control declarations (Stats Group)
