@@ -18,3 +18,8 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Compile
+build/
+*.spec
+*.exe
