@@ -29,6 +29,4 @@ Pokédex written in Python.
 ## Planned Changes/Features
 1. **Pokédex Editor**: Quickly edit or add new Pokémon data through the GUI frontend.
 2. **Further Data Vetting** While the database is accurate, it is not perfect, and there are still some areas for cleanup.
-3. **Executable** Compile the Python app into executables for easy, nontechnical usage.
-4. **Add Legends: Z-A data** Upon release, new data should be captured ASAP into the SQLite database.
-5. **Java Version** Create a Java version of the application.
+3. **Add Legends: Z-A data** Upon release, new data should be captured ASAP into the SQLite database.
